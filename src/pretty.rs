@@ -1,6 +1,6 @@
 use crate::geocoding::GeocodingRequest;
 use colored::Colorize;
-use comfy_table::{Attribute as ComfyAttribute, Cell, CellAlignment, Color as ComfyColor, Table};
+use comfy_table::{Cell, Table};
 use google_maps::prelude::{GeocodingResponse, LatLng};
 use std::path::PathBuf;
 
@@ -47,24 +47,19 @@ impl PrettyPrintable for GeocodingResponse {
         let mut table = Table::new();
         table
             .load_preset(comfy_table::presets::UTF8_FULL)
+            .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
             .set_header(vec![
-                Cell::new("Formatted Address")
-                    .add_attribute(ComfyAttribute::Bold)
-                    .fg(ComfyColor::DarkGrey),
-                Cell::new("Latitude")
-                    .add_attribute(ComfyAttribute::Bold)
-                    .fg(ComfyColor::DarkGrey),
-                Cell::new("Longitude")
-                    .add_attribute(ComfyAttribute::Bold)
-                    .fg(ComfyColor::DarkGrey),
+                Cell::new("Formatted Address".bold().dimmed()),
+                Cell::new("Latitude".bold().dimmed()),
+                Cell::new("Longitude".bold().dimmed()),
             ]);
 
         for result in &self.results {
             let LatLng { lat, lng } = result.geometry.location;
             table.add_row(vec![
                 Cell::new(result.formatted_address.white()),
-                Cell::new(lat.to_string().bright_cyan()).set_alignment(CellAlignment::Right),
-                Cell::new(lng.to_string().bright_cyan()).set_alignment(CellAlignment::Right),
+                Cell::new(lat.to_string().bright_cyan()),
+                Cell::new(lng.to_string().bright_cyan()),
             ]);
         }
 
