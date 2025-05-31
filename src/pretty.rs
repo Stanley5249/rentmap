@@ -78,10 +78,8 @@ impl PrettyPrintable for GeocodingResponse {
     }
 }
 
-// Re-implement PrettyDisplay for Option<PathBuf>
 impl PrettyPrintable for Option<PathBuf> {
     fn to_pretty_string(&self) -> String {
-        // Just format the text directly without using a table
         format!(
             "{}\n {}",
             "Config file:".bold().underline(),
