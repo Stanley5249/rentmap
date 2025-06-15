@@ -1,16 +1,28 @@
-use crate::geocoding::GeocodingRequest;
+use crate::apis::vision::model::OcrString;
+use crate::cli::commands::geocoding;
 use colored::Colorize;
-use comfy_table::{Cell, Table};
+use comfy_table::{Cell, ContentArrangement, Table, presets};
 use google_maps::prelude::{GeocodingResponse, LatLng};
-use std::path::PathBuf;
+use std::time::Duration;
 
 /// Trait for types that can be pretty-printed to a String.
-pub trait PrettyPrintable {
+pub trait ToPrettyString {
     /// Renders the object to a String.
     fn to_pretty_string(&self) -> String;
 }
 
-impl PrettyPrintable for GeocodingRequest {
+impl ToPrettyString for Duration {
+    fn to_pretty_string(&self) -> String {
+        let s = self.as_secs_f64();
+        if s < 1.0 {
+            format!("{}ms", self.as_millis())
+        } else {
+            format!("{:.1}s", s)
+        }
+    }
+}
+
+impl ToPrettyString for geocoding::Args {
     fn to_pretty_string(&self) -> String {
         let mut table = Table::new();
         table
@@ -24,7 +36,7 @@ impl PrettyPrintable for GeocodingRequest {
 
         table.add_row(vec![
             Cell::new("Language".dimmed()),
-            Cell::new(match self.language {
+            Cell::new(match self.config.language {
                 Some(lang) => lang.display().bright_cyan(),
                 None => "default".dimmed(),
             }),
@@ -32,17 +44,17 @@ impl PrettyPrintable for GeocodingRequest {
 
         table.add_row(vec![
             Cell::new("Region".dimmed()),
-            Cell::new(match self.region {
+            Cell::new(match self.config.region {
                 Some(reg) => reg.display().bright_cyan(),
                 None => "default".dimmed(),
             }),
         ]);
 
-        format!("{}\n{}", "Request:".bold().underline(), table)
+        format!("{}\n{}", "Args:".bold().underline(), table)
     }
 }
 
-impl PrettyPrintable for GeocodingResponse {
+impl ToPrettyString for GeocodingResponse {
     fn to_pretty_string(&self) -> String {
         let mut table = Table::new();
         table
@@ -73,15 +85,26 @@ impl PrettyPrintable for GeocodingResponse {
     }
 }
 
-impl PrettyPrintable for Option<PathBuf> {
+impl ToPrettyString for OcrString {
     fn to_pretty_string(&self) -> String {
-        format!(
-            "{}\n {}",
-            "Config file:".bold().underline(),
-            match self {
-                Some(path) => path.display().to_string().bright_cyan(),
-                None => "None".dimmed(),
-            }
-        )
+        if self.is_empty() {
+            return "No text detected.".red().to_string();
+        }
+
+        let header = "Detected Text:".bold().underline();
+        let mut table = Table::new();
+
+        table
+            .load_preset(presets::NOTHING)
+            .set_content_arrangement(ContentArrangement::Disabled);
+
+        for (i, line) in self.lines().enumerate() {
+            table.add_row(vec![
+                Cell::new((i + 1).to_string().bright_blue()),
+                Cell::new(line),
+            ]);
+        }
+
+        format!("{}\n\n{}", header, table)
     }
 }
