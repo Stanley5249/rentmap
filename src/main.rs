@@ -3,8 +3,6 @@
 use clap::{Parser, Subcommand};
 use miette::Result;
 use rentmap::cli::commands::{fetch, geocoding, lists, ocr};
-use std::str::FromStr;
-use tracing_subscriber::filter::Directive;
 use tracing_subscriber::{self, EnvFilter};
 
 #[derive(Debug, Parser)]
@@ -33,9 +31,7 @@ enum Commands {
 
 /// Initialize tracing for logging
 pub fn setup_tracing() {
-    let directive = Directive::from_str("rentmap=debug").unwrap();
-
-    let filter = EnvFilter::from_default_env().add_directive(directive);
+    let filter = EnvFilter::from_default_env();
 
     tracing_subscriber::fmt()
         .pretty()
