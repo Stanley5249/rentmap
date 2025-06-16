@@ -5,6 +5,9 @@ use scraper::Html;
 use std::path::{Path, PathBuf};
 use tracing::error;
 use url::Url;
+
+type Transform = Box<dyn Fn(&mut Html)>;
+
 enum FetcherBackend {
     Spider,
 }
@@ -19,7 +22,7 @@ impl FetcherBackend {
 
 pub struct Fetcher {
     pub save: Option<PathBuf>,
-    pub transforms: Vec<fn(&mut Html)>,
+    pub transforms: Vec<Transform>,
     backend: FetcherBackend,
 }
 
@@ -34,7 +37,15 @@ impl Fetcher {
     }
 
     pub fn with_clean(mut self) -> Self {
-        self.transforms.push(clean_html);
+        self.transforms.push(Box::new(clean_html));
+        self
+    }
+
+    pub fn with_transform<F>(mut self, transform: F) -> Self
+    where
+        F: 'static + Fn(&mut Html),
+    {
+        self.transforms.push(Box::new(transform));
         self
     }
 
