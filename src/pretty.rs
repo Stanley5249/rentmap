@@ -1,5 +1,5 @@
 use crate::apis::vision::model::OcrString;
-use crate::cli::commands::geocoding;
+use crate::cli::commands::{geocoding, ocr};
 use colored::Colorize;
 use comfy_table::{Cell, ContentArrangement, Table, presets};
 use google_maps::prelude::{GeocodingResponse, LatLng};
@@ -50,13 +50,38 @@ impl ToPrettyString for geocoding::Args {
             }),
         ]);
 
-        format!("{}\n{}", "Args:".bold().underline(), table)
+        table.to_string()
+    }
+}
+
+impl ToPrettyString for ocr::Args {
+    fn to_pretty_string(&self) -> String {
+        let mut table = Table::new();
+        table
+            .load_preset(comfy_table::presets::NOTHING)
+            .set_content_arrangement(comfy_table::ContentArrangement::Disabled);
+
+        table.add_row(vec![
+            Cell::new("Path".dimmed()),
+            Cell::new(self.path.display().to_string().bright_cyan()),
+        ]);
+
+        table.add_row(vec![
+            Cell::new("Languages".dimmed()),
+            Cell::new(match &self.config.languages {
+                Some(langs) => langs.join(", ").bright_cyan(),
+                None => "default".dimmed(),
+            }),
+        ]);
+
+        table.to_string()
     }
 }
 
 impl ToPrettyString for GeocodingResponse {
     fn to_pretty_string(&self) -> String {
         let mut table = Table::new();
+
         table
             .load_preset(comfy_table::presets::UTF8_FULL)
             .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
@@ -75,23 +100,12 @@ impl ToPrettyString for GeocodingResponse {
             ]);
         }
 
-        let summary = match self.results.len() {
-            0 => "No locations found.".red(), // unreachable
-            1 => "Found 1 location.".bright_green(),
-            n => format!("Found {} locations.", n).bright_green(),
-        };
-
-        format!("{}\n{}\n{}", "Response:".bold().underline(), table, summary)
+        table.to_string()
     }
 }
 
 impl ToPrettyString for OcrString {
     fn to_pretty_string(&self) -> String {
-        if self.is_empty() {
-            return "No text detected.".red().to_string();
-        }
-
-        let header = "Detected Text:".bold().underline();
         let mut table = Table::new();
 
         table
@@ -105,6 +119,6 @@ impl ToPrettyString for OcrString {
             ]);
         }
 
-        format!("{}\n\n{}", header, table)
+        table.to_string()
     }
 }

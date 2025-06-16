@@ -1,25 +1,20 @@
+use crate::config::geocoding::GeocodingConfig;
+use crate::config::google::GoogleConfig;
+use crate::config::ocr::OcrConfig;
 use crate::file::load_toml;
-use clap::Parser;
-use google_maps::prelude::*;
 use serde::Deserialize;
 use std::env;
 use std::path::{Path, PathBuf};
-use tracing::error;
+use tracing::warn;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub api_key: Option<String>,
+    #[serde(flatten)]
+    pub google: Option<GoogleConfig>,
 
     pub geocoding: Option<GeocodingConfig>,
-}
 
-#[derive(Debug, Deserialize, Parser)]
-pub struct GeocodingConfig {
-    #[arg(short, long)]
-    pub language: Option<Language>,
-
-    #[arg(short, long)]
-    pub region: Option<Region>,
+    pub ocr: Option<OcrConfig>,
 }
 
 pub fn find_config<P>(file_name: &P) -> Option<PathBuf>
@@ -35,5 +30,5 @@ where
 
 pub fn load_config() -> Option<Config> {
     find_config(&"rentmap.toml")
-        .and_then(|path| load_toml(&path).inspect_err(|error| error!(%error)).ok())
+        .and_then(|path| load_toml(&path).inspect_err(|error| warn!(%error)).ok())
 }

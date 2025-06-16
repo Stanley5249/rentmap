@@ -24,19 +24,18 @@ pub struct Args {
     pub fetcher: FetcherArgs,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
-    info!("starting rent-lists CLI tool");
+    info!(?args);
 
     make_directory(&args.fetcher.out_dir).inspect_err(|error| error!(%error))?;
 
     let fetcher = setup_fetcher(&args.fetcher);
 
-    let rent_lists = scrape_rent_lists(&fetcher, args.url.clone(), args.limit).await;
+    let rent_lists = scrape_rent_lists(&fetcher, args.url, args.limit).await;
 
     save_json(&rent_lists, &args.out_file, &args.fetcher.out_dir)
         .inspect_err(|error| error!(%error))?;
-
-    info!("rent-lists completed successfully");
 
     Ok(())
 }

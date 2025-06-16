@@ -7,7 +7,7 @@ use std::fmt::Debug;
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use tracing::info;
+use tracing::{debug, info};
 use url::Url;
 
 // macro to generate FileError constructor methods
@@ -81,7 +81,7 @@ where
         );
     }
 
-    info!(
+    debug!(
         path = %path.display(),
         "directory already exists"
     );

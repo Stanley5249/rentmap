@@ -1,5 +1,5 @@
 {
     "terminal.integrated.env.windows": {
-        "RUST_LOG": "info,rent_map=debug"
+        "RUST_LOG": "warn,rentmap=debug"
     }
 }

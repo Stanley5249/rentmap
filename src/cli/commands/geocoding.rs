@@ -1,27 +1,31 @@
 //! Geocoding command implementation
 
-use crate::cli::error::ApiKeyMissingError;
-use crate::config::model::{Config, GeocodingConfig, load_config};
+use crate::config::geocoding::GeocodingConfig;
+use crate::config::google::GoogleConfig;
+use crate::config::model::{Config, load_config};
 use crate::pretty::ToPrettyString;
 use clap::Parser;
+use colored::Colorize;
 use google_maps::prelude::*;
 use miette::Result;
+use tracing::{error, info};
 
 #[derive(Debug, Parser)]
 pub struct Args {
     /// Address or location to geocode
     pub query: String,
 
-    /// Google Maps API key
-    #[arg(long, env = "GOOGLE_MAPS_API_KEY")]
-    pub api_key: Option<String>,
-
     #[clap(flatten)]
     pub config: GeocodingConfig,
+
+    #[clap(flatten)]
+    pub google: GoogleConfig,
 }
 
 fn merge_args(mut args: Args, config: Config) -> Args {
-    args.api_key = args.api_key.or(config.api_key);
+    if let Some(google_config) = config.google {
+        args.google.api_key = args.google.api_key.or(google_config.api_key);
+    }
 
     if let Some(geocoding) = config.geocoding {
         args.config.language = args.config.language.or(geocoding.language);
@@ -31,15 +35,43 @@ fn merge_args(mut args: Args, config: Config) -> Args {
     args
 }
 
+fn format_args(args: &Args) -> String {
+    let title = "Args:".bold().underline();
+    let table = args.to_pretty_string();
+    format!("{}\n{}", title, table)
+}
+
+fn format_geocoding_response(response: &GeocodingResponse) -> String {
+    let title = "Response:".bold().underline();
+
+    let table = response.to_pretty_string();
+
+    let summary = match response.results.len() {
+        0 => "No locations found.".red(), // unreachable
+        1 => "Found 1 location.".bright_green(),
+        n => format!("Found {} locations.", n).bright_green(),
+    };
+
+    format!("{}\n{}\n{}", title, table, summary)
+}
+
 /// Run the CLI application
-pub async fn run(mut args: Args) -> Result<()> {
-    if let Some(config) = load_config() {
-        args = merge_args(args, config);
-    }
+#[tracing::instrument(skip_all)]
+pub async fn run(args: Args) -> Result<()> {
+    let args = match load_config() {
+        Some(config) => merge_args(args, config),
+        None => args,
+    };
+    info!(?args);
 
-    let api_key = args.api_key.ok_or(ApiKeyMissingError)?;
+    println!("{}", format_args(&args));
 
-    let client = Client::try_new(api_key)?;
+    let api_key = args
+        .google
+        .get_api_key()
+        .inspect_err(|error| error!(%error))?;
+
+    let client = Client::try_new(api_key).inspect_err(|error| error!(%error))?;
 
     let mut builder = client.geocoding().with_address(&args.query);
 
@@ -51,8 +83,12 @@ pub async fn run(mut args: Args) -> Result<()> {
         builder = builder.with_region(region);
     }
 
-    let response = builder.execute().await?;
-    println!("{}", response.to_pretty_string());
+    let response = builder
+        .execute()
+        .await
+        .inspect_err(|error| error!(%error))?;
+
+    println!("\n{}", format_geocoding_response(&response));
 
     Ok(())
 }

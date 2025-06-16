@@ -3,7 +3,7 @@ use crate::file::save_page;
 use crate::scraping::dom::clean_html;
 use scraper::Html;
 use std::path::{Path, PathBuf};
-use tracing::error;
+use tracing::warn;
 use url::Url;
 
 type Transform = Box<dyn Fn(&mut Html)>;
@@ -62,9 +62,9 @@ impl Fetcher {
         }
 
         if let Some(output_dir) = &self.save {
-            if let Err(error) = save_page(&page, output_dir) {
-                error!(%error);
-            };
+            save_page(&page, output_dir)
+                .inspect_err(|error| warn!(%error))
+                .ok();
         }
 
         Ok(document)

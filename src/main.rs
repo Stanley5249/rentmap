@@ -36,6 +36,7 @@ pub fn setup_tracing() {
     tracing_subscriber::fmt()
         .pretty()
         .with_env_filter(filter)
+        .with_writer(std::io::stderr)
         .init();
 }
 
