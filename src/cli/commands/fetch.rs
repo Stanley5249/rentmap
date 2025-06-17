@@ -4,7 +4,7 @@ use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::file::make_directory;
 use clap::Parser;
 use miette::Result;
-use tracing::{error, info};
+use tracing::{debug, error};
 use url::Url;
 
 #[derive(Debug, Parser)]
@@ -18,7 +18,7 @@ pub struct Args {
 
 #[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
-    info!(?args);
+    debug!(?args);
 
     make_directory(&args.fetcher.out_dir).inspect_err(|error| error!(%error))?;
 

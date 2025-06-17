@@ -9,7 +9,7 @@ use clap::Parser;
 use colored::Colorize;
 use miette::Result;
 use std::path::PathBuf;
-use tracing::{error, info};
+use tracing::{debug, error};
 
 /// Extract text from images using Google Vision API
 #[derive(Debug, Parser)]
@@ -59,7 +59,7 @@ pub async fn run(args: Args) -> Result<()> {
         Some(config) => merge_args(args, config),
         None => args,
     };
-    info!(?args);
+    debug!(?args);
 
     println!("{}", format_args(&args));
 

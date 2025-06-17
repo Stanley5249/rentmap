@@ -8,7 +8,7 @@ use clap::Parser;
 use colored::Colorize;
 use google_maps::prelude::*;
 use miette::Result;
-use tracing::{error, info};
+use tracing::{debug, error};
 
 #[derive(Debug, Parser)]
 pub struct Args {
@@ -62,7 +62,7 @@ pub async fn run(args: Args) -> Result<()> {
         Some(config) => merge_args(args, config),
         None => args,
     };
-    info!(?args);
+    debug!(?args);
 
     println!("{}", format_args(&args));
 
