@@ -2,6 +2,7 @@ use super::error::ApiKeyNotFound;
 use clap::Parser;
 use serde::Deserialize;
 use std::fmt::{self, Debug, Formatter};
+use std::ops::Deref;
 
 /// Google API key arguments (for Maps, Vision, etc.)
 #[derive(Debug, Deserialize, Parser)]
@@ -43,5 +44,13 @@ impl From<String> for SecretString {
 impl From<SecretString> for String {
     fn from(val: SecretString) -> Self {
         val.0
+    }
+}
+
+impl Deref for SecretString {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
