@@ -1,7 +1,7 @@
 use super::error::ApiKeyNotFound;
 use clap::Parser;
 use serde::Deserialize;
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Formatter};
 
 /// Google API key arguments (for Maps, Vision, etc.)
 #[derive(Debug, Deserialize, Parser)]
@@ -29,7 +29,7 @@ impl SecretString {
 }
 
 impl Debug for SecretString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "<hidden>")
     }
 }
