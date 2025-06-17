@@ -4,11 +4,13 @@ use scraper::Html;
 use url::Url;
 
 selectors! {
-    PAGE_SELECTOR: "ul.paging > li:last-child > a",
+    PAGE_COUNT_SELECTOR: "ul.paging > li:last-child > a",
+    ITEM_COUNT_SELECTOR: ".list-sort .total strong",
     ITEM_SELECTOR: ".item",
-    LINK_SELECTOR: ".item-info-title a.link",
-    TAG_SELECTOR: ".item-info-tag .tag",
-    INFO_SELECTOR: ".item-info-txt",
+    ITEM_INFO_LINK_SELECTOR: ".item-info-title a.link",
+    ITEM_INFO_PRICE_SELECTOR: ".item-info-price",
+    ITEM_INFO_TAG_SELECTOR: ".item-info-tag .tag",
+    ITEM_INFO_TXT_SELECTOR: ".item-info-txt",
     IMAGE_SELECTOR: "ul.image-list img.common-img"
 }
 
@@ -21,78 +23,101 @@ impl ListView {
         Self { document }
     }
 
-    pub fn extract_page_count(&self) -> Result<u32, super::error::Error> {
-        let page_selector = &*PAGE_SELECTOR;
-        let count = self
-            .document
-            .select(page_selector)
-            .next()
-            .ok_or(super::error::Error::NoPageLinks)?
-            .text()
-            .next()
-            .ok_or(super::error::Error::NoPageText)?
-            .parse::<u32>()?;
+    pub fn extract_page_count(&self) -> Option<u32> {
+        let selector = &*PAGE_COUNT_SELECTOR;
 
-        Ok(count)
+        self.document
+            .select(selector)
+            .next()
+            .and_then(|e| e.text().next().and_then(|s| s.parse::<u32>().ok()))
     }
 
-    fn extract_item_link(&self, item: &scraper::ElementRef) -> Option<Url> {
-        let link_selector = &*LINK_SELECTOR;
-        item.select(link_selector)
+    pub fn extract_item_count(&self) -> Option<u32> {
+        let selector = &*ITEM_COUNT_SELECTOR;
+
+        self.document
+            .select(selector)
             .next()
-            .and_then(|e| e.value().attr("href"))
-            .and_then(|href| Url::parse(href).ok())
+            .and_then(|e| e.text().next().and_then(|s| s.parse::<u32>().ok()))
     }
 
-    fn extract_item_title(&self, item: &scraper::ElementRef) -> Option<String> {
-        let link_selector = &*LINK_SELECTOR;
-        item.select(link_selector)
+    fn extract_item_link_and_title(
+        &self,
+        item: &scraper::ElementRef,
+    ) -> (Option<Url>, Option<String>) {
+        let selector = &*ITEM_INFO_LINK_SELECTOR;
+
+        item.select(selector)
             .next()
-            .and_then(|e| e.value().attr("title"))
-            .map(String::from)
+            .map(|e| {
+                let value = e.value();
+                let link = value.attr("href").and_then(|s| Url::parse(s).ok());
+                let title = value.attr("title").map(String::from);
+                (link, title)
+            })
+            .unwrap_or((None, None))
     }
 
-    fn extract_item_tags(&self, item: &scraper::ElementRef) -> Vec<String> {
-        let tag_selector = &*TAG_SELECTOR;
-        item.select(tag_selector)
-            .map(|el| el.text().collect::<String>().trim().to_string())
+    fn extract_item_info_price(&self, item: &scraper::ElementRef) -> Option<String> {
+        let selector = &*ITEM_INFO_PRICE_SELECTOR;
+
+        item.select(selector).next().map(|e| {
+            e.text()
+                .map(|t| t.trim())
+                .filter(|t| !t.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+    }
+
+    fn extract_item_info_tags(&self, item: &scraper::ElementRef) -> Vec<String> {
+        let selector = &*ITEM_INFO_TAG_SELECTOR;
+
+        item.select(selector)
+            .map(|e| e.text().collect::<String>().trim().to_string())
             .collect()
     }
 
-    fn extract_item_info(&self, item: &scraper::ElementRef) -> Vec<String> {
-        let info_selector = &*INFO_SELECTOR;
-        item.select(info_selector)
-            .map(|el| el.text().collect::<String>().trim().to_string())
+    fn extract_item_info_txts(&self, item: &scraper::ElementRef) -> Vec<String> {
+        let selector = &*ITEM_INFO_TXT_SELECTOR;
+
+        item.select(selector)
+            .map(|e| {
+                e.text()
+                    .map(|t| t.trim())
+                    .filter(|t| !t.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
             .collect()
     }
 
     fn extract_item_images(&self, item: &scraper::ElementRef) -> Vec<Url> {
         let selector = &*IMAGE_SELECTOR;
+
         item.select(selector)
             .filter_map(|img| img.value().attr("data-src"))
             .filter_map(|src| Url::parse(src).ok())
             .collect()
     }
 
-    pub fn extract_rent_items(&self) -> Result<Vec<RentListItem>, super::error::Error> {
+    pub fn extract_items(&self) -> Vec<RentListItem> {
         let selector = &*ITEM_SELECTOR;
-        // Use a functional approach with iterators
-        let items = self
-            .document
+
+        self.document
             .select(selector)
             .filter_map(|item| {
-                // Only proceed if we can extract a valid link
-                self.extract_item_link(&item).map(|link| RentListItem {
+                let (link, title) = self.extract_item_link_and_title(&item);
+                link.map(|link| RentListItem {
                     link,
-                    title: self.extract_item_title(&item),
-                    tags: self.extract_item_tags(&item),
-                    info: self.extract_item_info(&item),
+                    title,
+                    price: self.extract_item_info_price(&item),
+                    tags: self.extract_item_info_tags(&item),
+                    txts: self.extract_item_info_txts(&item),
                     images: self.extract_item_images(&item),
                 })
             })
-            .collect();
-
-        Ok(items)
+            .collect()
     }
 }
 

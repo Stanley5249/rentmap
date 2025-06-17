@@ -5,21 +5,26 @@ use url::Url;
 pub struct RentLists {
     pub base_url: Url,
     pub page_count: u32,
+    pub item_count: u32,
     pub lists: Vec<Option<RentList>>,
 }
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RentList {
-    pub page_number: u32,
+    pub url: Url,
     pub items: Vec<RentListItem>,
 }
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RentListItem {
     pub link: Url,
     pub title: Option<String>,
+    pub price: Option<String>,
     pub tags: Vec<String>,
-    pub info: Vec<String>,
+    pub txts: Vec<String>,
     pub images: Vec<Url>,
 }
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RentItem {
     pub url: Url,

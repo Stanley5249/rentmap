@@ -3,13 +3,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
-    #[error("Failed to build website")]
-    #[diagnostic(help("{0}"))]
+    #[error("Failed to build website: {0}")]
     Website(#[source] spider::website::Website),
 
-    #[error("Failed to retrieve pages from website")]
-    PagesRetrieval,
-
-    #[error("No pages found after scraping")]
+    #[error("Failed to get pages from website")]
     NoPages,
 }

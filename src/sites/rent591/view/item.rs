@@ -10,7 +10,7 @@ impl ItemView {
         Self { document }
     }
 
-    pub fn extract_rent_item(&self) -> Result<RentItem, super::error::Error> {
+    pub fn extract_rent_item(&self) -> RentItem {
         todo!();
     }
 }

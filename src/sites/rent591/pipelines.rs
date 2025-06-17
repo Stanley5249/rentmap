@@ -3,10 +3,10 @@ use super::view::ListView;
 use crate::scraping::fetcher::Fetcher;
 use crate::sites::rent591::model::RentLists;
 use crate::sites::rent591::view::ItemView;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use url::Url;
 
-fn query_page(base_url: &Url, page_number: u32) -> Url {
+fn build_page_url(base_url: &Url, page_number: u32) -> Url {
     let mut page_url = base_url.clone();
     page_url
         .query_pairs_mut()
@@ -14,152 +14,132 @@ fn query_page(base_url: &Url, page_number: u32) -> Url {
     page_url
 }
 
-async fn scrape_rent_list_page(
-    fetcher: &Fetcher,
-    base_url: &Url,
-    page_number: u32,
-) -> Option<RentList> {
-    let page_url = query_page(base_url, page_number);
-
-    let response = match fetcher.try_fetch(&page_url).await {
+async fn scrape_rent_list(fetcher: &Fetcher, url: Url) -> Option<RentList> {
+    let response = match fetcher.try_fetch(&url).await {
         Ok(response) => response,
-        Err(e) => {
-            error!(page = page_number, %e);
+        Err(error) => {
+            warn!(%url, %error);
             return None;
         }
     };
 
     let list_view: ListView = response.into();
-    let items = match list_view.extract_rent_items() {
-        Ok(items) => items,
-        Err(e) => {
-            error!(page = page_number, %e);
-            return None;
-        }
-    };
+    let rent_list_items = list_view.extract_items();
 
-    info!(page = page_number, items = items.len(), "page scraped");
-    Some(RentList { page_number, items })
+    debug!(%url, item_count = rent_list_items.len());
+
+    Some(RentList {
+        url,
+        items: rent_list_items,
+    })
 }
 
-pub async fn scrape_rent_lists(fetcher: &Fetcher, base_url: Url, limit: Option<u32>) -> RentLists {
-    info!(%base_url, "scraping target");
+pub async fn scrape_rent_lists(
+    fetcher: &Fetcher,
+    base_url: Url,
+    limit: Option<u32>,
+) -> Result<RentLists, crate::scraping::error::Error> {
+    let url = build_page_url(&base_url, 1);
 
-    let mut lists = Vec::new();
-
-    let first_page_url = query_page(&base_url, 1);
-
-    let first_list = match fetcher.try_fetch(&first_page_url).await {
-        Ok(response) => response,
-        Err(e) => {
-            error!(%e);
-            return RentLists {
-                base_url,
-                page_count: 0,
-                lists,
-            };
-        }
-    };
+    let first_list = fetcher
+        .try_fetch(&url)
+        .await
+        .inspect_err(|error| error!(%base_url, %error))?;
 
     let first_list_view: ListView = first_list.into();
 
     let page_count = match first_list_view.extract_page_count() {
-        Ok(count) => count,
-        Err(e) => {
-            error!(%e);
-            return RentLists {
-                base_url,
-                page_count: 0,
-                lists,
-            };
+        Some(page_count) => {
+            debug!(%base_url, page_count);
+            page_count
+        }
+        None => {
+            debug!(%base_url, "no page count, fallback to 1");
+            1
         }
     };
 
-    info!(page_count, "scraping pages");
-
-    let first_list_items = match first_list_view.extract_rent_items() {
-        Ok(items) => {
-            info!(page = 1, items = items.len(), "page scraped");
-            Some(RentList {
-                page_number: 1,
-                items,
-            })
+    let item_count = match first_list_view.extract_item_count() {
+        Some(item_count) => {
+            debug!(%base_url, item_count);
+            item_count
         }
-        Err(e) => {
-            error!(page = 1, %e);
-            None
+        None => {
+            debug!(%base_url, "no item count, fallback to 0");
+            0
         }
     };
 
-    lists.push(first_list_items);
+    let rent_list_items = first_list_view.extract_items();
+    debug!(%url, item_count = rent_list_items.len());
 
-    // Determine the actual number of pages to scrape
     let max_pages = match limit {
         Some(limit) => std::cmp::min(page_count, limit),
         None => page_count,
     };
 
+    let rent_list = Some(RentList {
+        url,
+        items: rent_list_items,
+    });
+    let mut rent_lists = Vec::with_capacity(max_pages as usize);
+    rent_lists.push(rent_list);
+
     for page_number in 2..=max_pages {
-        let page_result = scrape_rent_list_page(fetcher, &base_url, page_number).await;
-        lists.push(page_result);
+        let url = build_page_url(&base_url, page_number);
+        let rent_list = scrape_rent_list(fetcher, url).await;
+        rent_lists.push(rent_list);
     }
 
-    let successful = lists.iter().filter(|p| p.is_some()).count();
-    info!(
-        successful,
-        failed = lists.len() - successful,
-        "scraping completed"
-    );
+    let err = rent_lists.iter().filter(|p| p.is_none()).count();
+    let ok = rent_lists.len() - err;
 
-    RentLists {
+    match err {
+        0 => info!(%base_url, ok, "all lists scraped successfully"),
+        _ => warn!(%base_url, ok, err, "some lists failed to scrape"),
+    }
+
+    Ok(RentLists {
         base_url,
         page_count,
-        lists,
-    }
+        item_count,
+        lists: rent_lists,
+    })
 }
 
-pub async fn scrape_rent_items_pages(
-    fetcher: &Fetcher,
-    item_urls: Vec<Url>,
-) -> Vec<Option<RentItem>> {
+pub async fn scrape_rent_items(fetcher: &Fetcher, item_urls: Vec<Url>) -> Vec<Option<RentItem>> {
     if item_urls.is_empty() {
-        warn!("no item urls found");
+        warn!("empty item URLs");
         return Vec::new();
     }
 
-    info!(count = item_urls.len(), "scraping items");
+    debug!(item_count = item_urls.len());
 
-    let mut results = Vec::with_capacity(item_urls.len());
+    let mut rent_items = Vec::with_capacity(item_urls.len());
 
     for url in item_urls {
         let result = match fetcher.try_fetch(&url).await {
             Ok(document) => {
                 let item_view: ItemView = document.into();
-                match item_view.extract_rent_item() {
-                    Ok(item) => {
-                        info!(%url, "item scraped");
-                        Some(item)
-                    }
-                    Err(e) => {
-                        error!(%url, %e);
-                        None
-                    }
-                }
+                let item = item_view.extract_rent_item();
+                debug!(%url, "item scraped");
+                Some(item)
             }
             Err(error) => {
-                error!(%url, %error);
+                warn!(%url, %error);
                 None
             }
         };
-        results.push(result);
+        rent_items.push(result);
     }
 
-    let successful = results.iter().filter(|item| item.is_some()).count();
-    info!(
-        successful,
-        failed = results.len() - successful,
-        "scraping completed"
-    );
+    let err = rent_items.iter().filter(|p| p.is_none()).count();
+    let ok = rent_items.len() - err;
 
-    results
+    match err {
+        0 => info!(ok, "all items scraped successfully"),
+        _ => warn!(ok, err, "some items failed to scrape"),
+    }
+
+    rent_items
 }

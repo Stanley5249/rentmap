@@ -25,6 +25,7 @@ fn build_config() -> Configuration {
         .with_stealth(true)
         .with_caching(true)
         .with_limit(1)
+        .with_retry(1)
         .build();
 
     config
@@ -46,12 +47,9 @@ pub async fn fetch_page(url: &Url) -> Result<Page, super::error::Error> {
 
     Box::pin(website.scrape()).await;
 
-    let page = website
+    Ok(website
         .get_pages()
-        .ok_or(super::error::Error::PagesRetrieval)?
-        .first()
+        .and_then(|pages| pages.first())
         .ok_or(super::error::Error::NoPages)?
-        .into();
-
-    Ok(page)
+        .into())
 }
