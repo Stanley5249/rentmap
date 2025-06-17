@@ -106,11 +106,12 @@ impl Client {
         B: Into<Bytes>,
         S: Into<String>,
     {
-        let results = self
-            .text_detection_batch(vec![image], language_hints)
-            .await?;
+        let result = self
+            .text_detection_batch([image], language_hints)
+            .await?
+            .pop()
+            .unwrap();
 
-        // Since we passed exactly one image, we're guaranteed to get exactly one result
-        Ok(results.into_iter().next().unwrap())
+        Ok(result)
     }
 }

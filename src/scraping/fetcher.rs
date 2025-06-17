@@ -75,7 +75,7 @@ impl Default for Fetcher {
     fn default() -> Self {
         Self {
             save: None,
-            transforms: vec![],
+            transforms: Vec::new(),
             backend: FetcherBackend::Spider,
         }
     }

@@ -170,7 +170,7 @@ where
 pub fn url_to_file_name(url: &Url) -> String {
     const INVALID_CHARS: [char; 9] = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
 
-    let mut components = vec![];
+    let mut components = Vec::new();
 
     if let Some(host) = url.host_str() {
         components.push(host);
