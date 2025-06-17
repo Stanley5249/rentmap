@@ -1,13 +1,13 @@
 use super::error::ApiKeyNotFound;
-use clap::Parser;
+use clap::Args;
 use serde::Deserialize;
 use std::fmt::{self, Debug, Formatter};
 use std::ops::Deref;
 
-/// Google API key arguments (for Maps, Vision, etc.)
-#[derive(Debug, Deserialize, Parser)]
+/// Google API configuration for cloud services
+#[derive(Debug, Deserialize, Args)]
 pub struct GoogleConfig {
-    /// The Google API key to use for requests
+    /// Google API key for cloud services
     #[arg(long, env = "GOOGLE_API_KEY")]
     pub api_key: Option<SecretString>,
 }

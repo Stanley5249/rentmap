@@ -9,16 +9,16 @@ use url::Url;
 
 #[derive(Debug, Parser)]
 pub struct Args {
-    /// URL of rent591 search results page
+    /// Target URL for rent.591.com.tw search results
     pub url: Url,
-
-    /// JSON output filename
-    #[arg(long = "out-file", short = 'f', default_value = "rent591_lists.json")]
-    pub out_file: String,
 
     /// Maximum pages to scrape
     #[arg(long, short)]
     pub limit: Option<u32>,
+
+    /// Output JSON filename
+    #[arg(long = "out-file", short = 'f', default_value = "rent591_lists.json")]
+    pub out_file: String,
 
     #[clap(flatten)]
     pub fetcher: FetcherArgs,

@@ -9,7 +9,7 @@ use url::Url;
 
 #[derive(Debug, Parser)]
 pub struct Args {
-    /// URL to fetch and process
+    /// Target URL to fetch and process
     pub url: Url,
 
     #[command(flatten)]

@@ -2,7 +2,8 @@ use crate::scraping::fetcher::Fetcher;
 use clap::Args;
 use std::path::PathBuf;
 
-#[derive(Debug, Args, Clone)]
+#[derive(Debug, Args)]
+#[command(next_help_heading = "Fetcher")]
 pub struct FetcherArgs {
     /// Don't save HTML files
     #[arg(long = "no-html", action = clap::ArgAction::SetFalse, default_value_t = true)]

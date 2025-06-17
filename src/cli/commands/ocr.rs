@@ -11,18 +11,18 @@ use miette::Result;
 use std::path::PathBuf;
 use tracing::{error, info};
 
-#[derive(Parser, Debug)]
+/// Extract text from images using Google Vision API
+#[derive(Debug, Parser)]
 #[command(name = "ocr")]
-#[command(about = "Perform OCR (text detection) on an image using Google Vision API")]
 pub struct Args {
     /// Image file path
     pub path: PathBuf,
 
     #[clap(flatten)]
-    pub config: OcrConfig,
+    pub google: GoogleConfig,
 
     #[clap(flatten)]
-    pub google: GoogleConfig,
+    pub config: OcrConfig,
 }
 
 fn merge_args(mut args: Args, config: Config) -> Args {
@@ -45,7 +45,7 @@ fn format_args(args: &Args) -> String {
 
 fn format_ocr_result(detected_text: &OcrString) -> String {
     if detected_text.is_empty() {
-        "No text detected.".red().to_string()
+        "No text detected".red().to_string()
     } else {
         let title = "Detected Text:".bold().underline();
         let table = detected_text.to_pretty_string();

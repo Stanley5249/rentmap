@@ -12,14 +12,14 @@ use tracing::{error, info};
 
 #[derive(Debug, Parser)]
 pub struct Args {
-    /// Address or location to geocode
+    /// Address or place to geocode
     pub query: String,
 
     #[clap(flatten)]
-    pub config: GeocodingConfig,
+    pub google: GoogleConfig,
 
     #[clap(flatten)]
-    pub google: GoogleConfig,
+    pub config: GeocodingConfig,
 }
 
 fn merge_args(mut args: Args, config: Config) -> Args {
@@ -47,9 +47,9 @@ fn format_geocoding_response(response: &GeocodingResponse) -> String {
     let table = response.to_pretty_string();
 
     let summary = match response.results.len() {
-        0 => "No locations found.".red(), // unreachable
-        1 => "Found 1 location.".bright_green(),
-        n => format!("Found {} locations.", n).bright_green(),
+        0 => "No locations found".red(), // unreachable
+        1 => "Found 1 location".bright_green(),
+        n => format!("Found {} locations", n).bright_green(),
     };
 
     format!("{}\n{}\n{}", title, table, summary)

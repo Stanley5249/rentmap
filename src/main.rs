@@ -5,13 +5,9 @@ use miette::Result;
 use rentmap::cli::commands::{fetch, geocoding, lists, ocr};
 use tracing_subscriber::{self, EnvFilter};
 
+/// Rental data scraping and processing toolkit
 #[derive(Debug, Parser)]
-#[command(
-    name = "rentmap",
-    version,
-    about = "RentMap CLI Tool",
-    long_about = None,
-)]
+#[command(name = "rentmap", version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -19,13 +15,13 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Scrape listings from rent.591.com.tw and save as JSON.
+    /// Scrape rental listings from rent.591.com.tw and save as JSON
     Lists(lists::Args),
     /// Download and clean HTML pages
     Fetch(fetch::Args),
-    /// Geocoding operations
+    /// Geocode addresses and locations
     Geocoding(geocoding::Args),
-    /// Perform OCR (text detection) on an image using Google Vision API
+    /// Extract text from images using Google Vision API
     Ocr(ocr::Args),
 }
 
