@@ -1,3 +1,10 @@
+use std::path::PathBuf;
+
+use clap::Parser;
+use colored::Colorize;
+use miette::Result;
+use tracing::{debug, error};
+
 use crate::apis::vision::client::Client;
 use crate::apis::vision::model::OcrString;
 use crate::config::google::GoogleConfig;
@@ -5,11 +12,6 @@ use crate::config::model::{Config, load_config};
 use crate::config::ocr::OcrConfig;
 use crate::file::load_image;
 use crate::pretty::ToPrettyString;
-use clap::Parser;
-use colored::Colorize;
-use miette::Result;
-use std::path::PathBuf;
-use tracing::{debug, error};
 
 /// Extract text from images using Google Vision API
 #[derive(Debug, Parser)]

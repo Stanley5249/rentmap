@@ -1,10 +1,11 @@
-use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::file::{make_directory, save_json};
-use crate::sites::rent591::scrapers::scrape_rent_lists;
 use clap::Parser;
 use miette::Result;
 use tracing::{debug, error};
 use url::Url;
+
+use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
+use crate::file::{make_directory, save_json};
+use crate::sites::rent591::scrapers::scrape_rent_lists;
 
 #[derive(Debug, Parser)]
 pub struct Args {

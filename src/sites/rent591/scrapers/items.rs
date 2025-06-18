@@ -1,8 +1,9 @@
+use tracing::{debug, info, warn};
+use url::Url;
+
 use crate::sites::rent591::model::RentItem;
 use crate::sites::rent591::view::ItemView;
 use crate::web::fetcher::Fetcher;
-use tracing::{debug, info, warn};
-use url::Url;
 
 pub async fn scrape_rent_items(fetcher: &Fetcher, item_urls: Vec<Url>) -> Vec<Option<RentItem>> {
     if item_urls.is_empty() {

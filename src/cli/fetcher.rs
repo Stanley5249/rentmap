@@ -1,6 +1,8 @@
-use crate::web::fetcher::Fetcher;
-use clap::Args;
 use std::path::PathBuf;
+
+use clap::Args;
+
+use crate::web::fetcher::Fetcher;
 
 #[derive(Debug, Args)]
 #[command(next_help_heading = "Fetcher")]

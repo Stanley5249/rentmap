@@ -1,6 +1,7 @@
-use crate::selectors;
 use scraper::node::Comment;
 use scraper::{Html, Node, Selector};
+
+use crate::selectors;
 
 selectors! {
     SCRIPT_SELECTOR: "link[as=\"script\"], script",

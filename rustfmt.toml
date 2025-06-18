@@ -1,0 +1,5 @@
+# Uncomment these lines if using nightly Rust for better import organization
+
+# imports_granularity = "Module"
+# group_imports = "StdExternalCrate"
+# unstable_features = true

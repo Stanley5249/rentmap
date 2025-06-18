@@ -1,8 +1,9 @@
 pub mod error;
 pub mod spider;
 
-use crate::web::page::Page;
 use url::Url;
+
+use crate::web::page::Page;
 
 pub enum FetcherBackend {
     Spider,

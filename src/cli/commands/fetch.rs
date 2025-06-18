@@ -1,11 +1,12 @@
 //! Fetch command implementation
 
-use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::file::make_directory;
 use clap::Parser;
 use miette::Result;
 use tracing::{debug, error};
 use url::Url;
+
+use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
+use crate::file::make_directory;
 
 #[derive(Debug, Parser)]
 pub struct Args {

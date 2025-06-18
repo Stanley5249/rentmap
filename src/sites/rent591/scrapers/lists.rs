@@ -1,8 +1,9 @@
+use tracing::{debug, error, info, warn};
+use url::Url;
+
 use crate::sites::rent591::model::{RentList, RentLists};
 use crate::sites::rent591::view::ListView;
 use crate::web::fetcher::Fetcher;
-use tracing::{debug, error, info, warn};
-use url::Url;
 
 fn build_page_url(base_url: &Url, page_number: u32) -> Url {
     let mut page_url = base_url.clone();

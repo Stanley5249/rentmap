@@ -1,10 +1,12 @@
+use std::path::{Path, PathBuf};
+
+use scraper::Html;
+use tracing::warn;
+use url::Url;
+
 use crate::file::save_page;
 use crate::web::backends::FetcherBackend;
 use crate::web::dom::clean_html;
-use scraper::Html;
-use std::path::{Path, PathBuf};
-use tracing::warn;
-use url::Url;
 
 type Transform = Box<dyn Fn(&mut Html)>;
 

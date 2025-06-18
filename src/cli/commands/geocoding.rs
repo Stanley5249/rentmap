@@ -1,14 +1,15 @@
 //! Geocoding command implementation
 
-use crate::config::geocoding::GeocodingConfig;
-use crate::config::google::GoogleConfig;
-use crate::config::model::{Config, load_config};
-use crate::pretty::ToPrettyString;
 use clap::Parser;
 use colored::Colorize;
 use google_maps::prelude::*;
 use miette::Result;
 use tracing::{debug, error};
+
+use crate::config::geocoding::GeocodingConfig;
+use crate::config::google::GoogleConfig;
+use crate::config::model::{Config, load_config};
+use crate::pretty::ToPrettyString;
 
 #[derive(Debug, Parser)]
 pub struct Args {

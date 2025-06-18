@@ -1,7 +1,8 @@
-use crate::selectors;
-use crate::sites::rent591::model::RentListItem;
 use scraper::Html;
 use url::Url;
+
+use crate::selectors;
+use crate::sites::rent591::model::RentListItem;
 
 selectors! {
     PAGE_COUNT_SELECTOR: "ul.paging > li:last-child > a",

@@ -1,8 +1,10 @@
-use super::error::ApiKeyNotFound;
-use clap::Args;
-use serde::Deserialize;
 use std::fmt::{self, Debug, Formatter};
 use std::ops::Deref;
+
+use clap::Args;
+use serde::Deserialize;
+
+use super::error::ApiKeyNotFound;
 
 /// Google API configuration for cloud services
 #[derive(Debug, Deserialize, Args)]

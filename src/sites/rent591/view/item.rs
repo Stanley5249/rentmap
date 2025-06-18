@@ -1,5 +1,6 @@
-use crate::sites::rent591::model::RentItem;
 use scraper::Html;
+
+use crate::sites::rent591::model::RentItem;
 
 pub struct ItemView {
     pub document: Html,

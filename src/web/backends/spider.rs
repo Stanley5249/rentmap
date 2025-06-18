@@ -1,9 +1,11 @@
-use crate::web::page::Page;
+use std::time::Duration;
+
 use spider::configuration::{Configuration, WaitForDelay, WaitForIdleNetwork, WaitForSelector};
 use spider::features::chrome_common::RequestInterceptConfiguration;
 use spider::website::Website;
-use std::time::Duration;
 use url::Url;
+
+use crate::web::page::Page;
 
 fn build_config() -> Configuration {
     let intercept_config = RequestInterceptConfiguration::new(true);

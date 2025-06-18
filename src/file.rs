@@ -1,14 +1,16 @@
-use crate::web::page::Page;
+use std::fmt::Debug;
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use bytes::Bytes;
 use miette::Diagnostic;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use std::fmt::Debug;
-use std::fs;
-use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tracing::{debug, info};
 use url::Url;
+
+use crate::web::page::Page;
 
 // macro to generate FileError constructor methods
 macro_rules! file_error_ctors {

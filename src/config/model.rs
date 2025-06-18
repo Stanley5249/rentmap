@@ -1,11 +1,13 @@
+use std::env;
+use std::path::{Path, PathBuf};
+
+use serde::Deserialize;
+use tracing::warn;
+
 use crate::config::geocoding::GeocodingConfig;
 use crate::config::google::GoogleConfig;
 use crate::config::ocr::OcrConfig;
 use crate::file::load_toml;
-use serde::Deserialize;
-use std::env;
-use std::path::{Path, PathBuf};
-use tracing::warn;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {

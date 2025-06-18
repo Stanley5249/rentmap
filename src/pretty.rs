@@ -1,9 +1,11 @@
-use crate::apis::vision::model::OcrString;
-use crate::cli::commands::{geocoding, ocr};
+use std::time::Duration;
+
 use colored::Colorize;
 use comfy_table::{Cell, ContentArrangement, Table, presets};
 use google_maps::prelude::{GeocodingResponse, LatLng};
-use std::time::Duration;
+
+use crate::apis::vision::model::OcrString;
+use crate::cli::commands::{geocoding, ocr};
 
 /// Trait for types that can be pretty-printed to a String.
 pub trait ToPrettyString {
