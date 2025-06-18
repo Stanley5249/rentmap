@@ -1,4 +1,4 @@
-use crate::scraping::page::Page;
+use crate::web::page::Page;
 use spider::configuration::{Configuration, WaitForDelay, WaitForIdleNetwork, WaitForSelector};
 use spider::features::chrome_common::RequestInterceptConfiguration;
 use spider::website::Website;
@@ -31,18 +31,18 @@ fn build_config() -> Configuration {
     config
 }
 
-fn build_website(url: &Url) -> Result<Box<Website>, super::error::Error> {
+fn build_website(url: &Url) -> Result<Box<Website>, super::error::Backend> {
     let config = build_config();
 
     let website = Website::new(url.as_str())
         .with_config(config)
         .build()
-        .map_err(super::error::Error::Website)?;
+        .map_err(super::error::Backend::Spider)?;
 
     Ok(Box::new(website))
 }
 
-pub async fn fetch_page(url: &Url) -> Result<Page, super::error::Error> {
+pub async fn fetch_page(url: &Url) -> Result<Page, crate::web::error::Error> {
     let mut website = build_website(url)?;
 
     Box::pin(website.scrape()).await;
@@ -50,6 +50,6 @@ pub async fn fetch_page(url: &Url) -> Result<Page, super::error::Error> {
     Ok(website
         .get_pages()
         .and_then(|pages| pages.first())
-        .ok_or(super::error::Error::NoPages)?
+        .ok_or(crate::web::error::Error::NoPages)?
         .into())
 }

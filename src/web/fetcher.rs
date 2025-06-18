@@ -1,24 +1,12 @@
-use super::page::Page;
 use crate::file::save_page;
-use crate::scraping::dom::clean_html;
+use crate::web::backends::FetcherBackend;
+use crate::web::dom::clean_html;
 use scraper::Html;
 use std::path::{Path, PathBuf};
 use tracing::warn;
 use url::Url;
 
 type Transform = Box<dyn Fn(&mut Html)>;
-
-enum FetcherBackend {
-    Spider,
-}
-
-impl FetcherBackend {
-    async fn fetch_page(&self, url: &Url) -> Result<Page, super::error::Error> {
-        match self {
-            FetcherBackend::Spider => super::spider::fetch_page(url).await,
-        }
-    }
-}
 
 pub struct Fetcher {
     pub save: Option<PathBuf>,

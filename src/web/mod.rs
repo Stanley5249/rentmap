@@ -1,8 +1,8 @@
+pub mod backends;
 pub mod dom;
 pub mod error;
 pub mod fetcher;
 pub mod page;
-pub mod spider;
 
 #[macro_export]
 macro_rules! selectors {

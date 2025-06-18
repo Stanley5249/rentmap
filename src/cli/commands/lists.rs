@@ -1,7 +1,6 @@
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::file::make_directory;
-use crate::file::save_json;
-use crate::sites::rent591::pipelines::scrape_rent_lists;
+use crate::file::{make_directory, save_json};
+use crate::sites::rent591::scrapers::scrape_rent_lists;
 use clap::Parser;
 use miette::Result;
 use tracing::{debug, error};

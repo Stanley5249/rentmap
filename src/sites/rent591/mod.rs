@@ -1,3 +1,3 @@
 pub mod model;
-pub mod pipelines;
+pub mod scrapers;
 pub mod view;

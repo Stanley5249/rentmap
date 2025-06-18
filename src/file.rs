@@ -1,4 +1,4 @@
-use crate::scraping::page::Page;
+use crate::web::page::Page;
 use bytes::Bytes;
 use miette::Diagnostic;
 use serde::Serialize;

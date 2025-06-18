@@ -1,8 +1,6 @@
-use super::model::{RentItem, RentList};
-use super::view::ListView;
-use crate::scraping::fetcher::Fetcher;
-use crate::sites::rent591::model::RentLists;
-use crate::sites::rent591::view::ItemView;
+use crate::sites::rent591::model::{RentList, RentLists};
+use crate::sites::rent591::view::ListView;
+use crate::web::fetcher::Fetcher;
 use tracing::{debug, error, info, warn};
 use url::Url;
 
@@ -38,7 +36,7 @@ pub async fn scrape_rent_lists(
     fetcher: &Fetcher,
     base_url: Url,
     limit: Option<u32>,
-) -> Result<RentLists, crate::scraping::error::Error> {
+) -> Result<RentLists, crate::web::error::Error> {
     let url = build_page_url(&base_url, 1);
 
     let first_list = fetcher
@@ -105,41 +103,4 @@ pub async fn scrape_rent_lists(
         item_count,
         lists: rent_lists,
     })
-}
-
-pub async fn scrape_rent_items(fetcher: &Fetcher, item_urls: Vec<Url>) -> Vec<Option<RentItem>> {
-    if item_urls.is_empty() {
-        warn!("empty item URLs");
-        return Vec::new();
-    }
-
-    debug!(item_count = item_urls.len());
-
-    let mut rent_items = Vec::with_capacity(item_urls.len());
-
-    for url in item_urls {
-        let result = match fetcher.try_fetch(&url).await {
-            Ok(document) => {
-                let item_view: ItemView = document.into();
-                let item = item_view.extract_rent_item();
-                debug!(%url, "item scraped");
-                Some(item)
-            }
-            Err(error) => {
-                warn!(%url, %error);
-                None
-            }
-        };
-        rent_items.push(result);
-    }
-
-    let err = rent_items.iter().filter(|p| p.is_none()).count();
-    let ok = rent_items.len() - err;
-
-    match err {
-        0 => info!(ok, "all items scraped successfully"),
-        _ => warn!(ok, err, "some items failed to scrape"),
-    }
-
-    rent_items
 }

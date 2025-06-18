@@ -1,3 +1,4 @@
+use crate::apis::vision::model::OcrString;
 use bytes::Bytes;
 use google_cloud_auth::credentials::api_key_credentials;
 use google_cloud_vision_v1::client::ImageAnnotator;
@@ -5,8 +6,6 @@ use google_cloud_vision_v1::model::feature::Type;
 use google_cloud_vision_v1::model::{
     AnnotateImageRequest, BatchAnnotateImagesRequest, Feature, Image, ImageContext,
 };
-
-use crate::apis::vision::model::OcrString;
 
 /// Vision API client wrapper around google-cloud-vision-v1 with API key authentication
 pub struct Client {

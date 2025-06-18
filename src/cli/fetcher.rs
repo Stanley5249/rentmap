@@ -1,4 +1,4 @@
-use crate::scraping::fetcher::Fetcher;
+use crate::web::fetcher::Fetcher;
 use clap::Args;
 use std::path::PathBuf;
 
