@@ -1,41 +1,67 @@
 [package]
+edition = "2024"
 name = "rentmap"
 version = "0.1.0"
-edition = "2024"
 
 [dependencies]
 base64 = "0.22.1"
 bytes = "1.10.1"
-clap = { version = "4.5.39", features = ["derive", "env"] }
 colored = "3.0.0"
-comfy-table = { version = "7.1.4", features = ["custom_styling"] }
 dirs = "6.0.0"
 google-cloud-auth = "0.20.0"
 google-cloud-vision-v1 = "0.3.0"
-google_maps = { version = "3.8.3", default-features = false, features = [
-    "geocoding",
-    "reqwest",
-    "reqwest-default-tls",
-] }
-miette = { version = "7.6.0", features = ["fancy"] }
 scraper = "0.23.1"
-serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-spider = { version = "2.37.104", features = [
+thiserror = "2.0.12"
+tracing = "0.1.41"
+
+[dependencies.clap]
+features = ["derive", "env"]
+version = "4.5.39"
+
+[dependencies.comfy-table]
+features = ["custom_styling"]
+version = "7.1.4"
+
+[dependencies.google_maps]
+default-features = false
+features = ["geocoding", "reqwest", "reqwest-default-tls"]
+version = "3.8.3"
+
+[dependencies.miette]
+features = ["fancy"]
+version = "7.6.0"
+
+[dependencies.serde]
+features = ["derive"]
+version = "1.0.219"
+
+[dependencies.spider]
+features = [
     "cache_chrome_hybrid_mem",
     "chrome",
     "chrome_intercept",
     "chrome_stealth",
-] }
-thiserror = "2.0.12"
-tokio = { version = "1.45.1", default-features = false, features = [
-    "macros",
-    "rt",
-] }
-toml = { version = "0.8.22", default-features = false, features = ["parse"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-url = { version = "2.5.4", features = ["serde"] }
+]
+version = "2.37.104"
+
+[dependencies.tokio]
+default-features = false
+features = ["macros", "rt"]
+version = "1.45.1"
+
+[dependencies.toml]
+default-features = false
+features = ["parse"]
+version = "0.8.22"
+
+[dependencies.tracing-subscriber]
+features = ["env-filter"]
+version = "0.3.19"
+
+[dependencies.url]
+features = ["serde"]
+version = "2.5.4"
 
 [profile.release]
 lto = true
