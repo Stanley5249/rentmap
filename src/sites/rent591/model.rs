@@ -23,17 +23,16 @@ pub struct RentListItem {
     pub tags: Vec<String>,
     pub txts: Vec<String>,
     pub images: Vec<Url>,
+    pub detail: Option<RentItemDetail>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct RentItem {
-    pub url: Url,
+pub struct RentItemDetail {
     pub title: Option<String>,
-    pub price: Option<String>,
-    pub location: Option<String>,
-    pub area: Option<String>,
-    pub room_type: Option<String>,
-    pub floor: Option<String>,
+    pub price: Option<Url>,
+    pub location: Option<Url>,
+    pub area: Option<Url>,
+    pub room_type: Option<Url>,
     pub description: Option<String>,
     pub contact_info: Option<String>,
     pub images: Vec<Url>,

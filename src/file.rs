@@ -165,6 +165,27 @@ where
     Ok(value)
 }
 
+pub fn load_json<P, T>(path: &P, input_dir: &P) -> Result<T, FileError>
+where
+    P: AsRef<Path>,
+    T: Debug + DeserializeOwned,
+{
+    let path = input_dir.as_ref().join(path);
+
+    let content =
+        fs::read_to_string(&path).map_err(|source| FileError::load_file(&path, source))?;
+
+    let value: T = serde_json::from_str(&content)?;
+
+    info!(
+        path = %path.display(),
+        length = content.len(),
+        "load JSON file"
+    );
+
+    Ok(value)
+}
+
 pub fn load_image<P>(path: &P) -> Result<Bytes, FileError>
 where
     P: AsRef<Path>,

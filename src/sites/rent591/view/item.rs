@@ -1,6 +1,6 @@
 use scraper::Html;
 
-use crate::sites::rent591::model::RentItem;
+use crate::sites::rent591::model::RentItemDetail;
 
 pub struct ItemView {
     pub document: Html,
@@ -11,7 +11,7 @@ impl ItemView {
         Self { document }
     }
 
-    pub fn extract_rent_item(&self) -> RentItem {
+    pub fn extract_rent_item(&self) -> Result<RentItemDetail, super::error::Error> {
         todo!();
     }
 }

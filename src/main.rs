@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 use miette::Result;
-use rentmap::cli::commands::{fetch, geocoding, lists, ocr};
+use rentmap::cli::commands::{fetch, geocoding, items, lists, ocr};
 use tracing::error;
 use tracing_subscriber::{self, EnvFilter};
 
@@ -18,6 +18,8 @@ struct Cli {
 enum Commands {
     /// Scrape rental listings from rent.591.com.tw and save as JSON
     Lists(lists::Args),
+    /// Augment existing rental lists with detailed item data
+    Items(items::Args),
     /// Download and clean HTML pages
     Fetch(fetch::Args),
     /// Geocode addresses and locations
@@ -42,9 +44,9 @@ async fn main() -> Result<()> {
     setup_tracing();
 
     let cli = Cli::parse();
-
     match cli.command {
         Commands::Lists(args) => lists::run(args).await,
+        Commands::Items(args) => items::run(args).await,
         Commands::Fetch(args) => fetch::run(args).await,
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
