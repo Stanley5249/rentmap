@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use miette::IntoDiagnostic;
 use scraper::Html;
 use tracing::warn;
 use url::Url;
@@ -52,9 +53,10 @@ impl Fetcher {
         }
 
         if let Some(output_dir) = &self.save {
-            save_page(&page, output_dir)
-                .inspect_err(|error| warn!(%error))
-                .ok();
+            if let Err(report) = save_page(&page, output_dir).into_diagnostic() {
+                warn!(%report);
+                eprintln!("{:?}", report);
+            }
         }
 
         Ok(document)

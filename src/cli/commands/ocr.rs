@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use colored::Colorize;
 use miette::Result;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::apis::vision::client::Client;
 use crate::apis::vision::model::OcrString;
@@ -65,21 +65,15 @@ pub async fn run(args: Args) -> Result<()> {
 
     println!("{}", format_args(&args));
 
-    let image_bytes = load_image(&args.path).inspect_err(|error| error!(%error))?;
+    let image_bytes = load_image(&args.path)?;
 
-    let api_key = args
-        .google
-        .get_api_key()
-        .inspect_err(|error| error!(%error))?;
+    let api_key = args.google.get_api_key()?;
 
-    let vision_client = Client::new(api_key)
-        .await
-        .inspect_err(|error| error!(%error))?;
+    let vision_client = Client::new(api_key).await?;
 
     let detected_text = vision_client
         .text_detection_single(image_bytes, args.config.languages)
-        .await
-        .inspect_err(|error| error!(%error))?;
+        .await?;
 
     println!("\n{}", format_ocr_result(&detected_text));
 

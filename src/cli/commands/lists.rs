@@ -1,6 +1,6 @@
 use clap::Parser;
 use miette::Result;
-use tracing::{debug, error};
+use tracing::debug;
 use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
@@ -28,14 +28,13 @@ pub struct Args {
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 
-    make_directory(&args.fetcher.out_dir).inspect_err(|error| error!(%error))?;
+    make_directory(&args.fetcher.out_dir)?;
 
     let fetcher = setup_fetcher(&args.fetcher);
 
     let rent_lists = scrape_rent_lists(&fetcher, args.url, args.limit).await?;
 
-    save_json(&rent_lists, &args.out_file, &args.fetcher.out_dir)
-        .inspect_err(|error| error!(%error))?;
+    save_json(&rent_lists, &args.out_file, &args.fetcher.out_dir)?;
 
     Ok(())
 }

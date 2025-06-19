@@ -3,6 +3,7 @@
 use clap::{Parser, Subcommand};
 use miette::Result;
 use rentmap::cli::commands::{fetch, geocoding, lists, ocr};
+use tracing::error;
 use tracing_subscriber::{self, EnvFilter};
 
 /// Rental data scraping and processing toolkit
@@ -48,4 +49,5 @@ async fn main() -> Result<()> {
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
     }
+    .inspect_err(|report| error!(%report))
 }

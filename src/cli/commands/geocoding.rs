@@ -4,7 +4,7 @@ use clap::Parser;
 use colored::Colorize;
 use google_maps::prelude::*;
 use miette::Result;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::config::geocoding::GeocodingConfig;
 use crate::config::google::GoogleConfig;
@@ -67,12 +67,9 @@ pub async fn run(args: Args) -> Result<()> {
 
     println!("{}", format_args(&args));
 
-    let api_key = args
-        .google
-        .get_api_key()
-        .inspect_err(|error| error!(%error))?;
+    let api_key = args.google.get_api_key()?;
 
-    let client = Client::try_new(api_key).inspect_err(|error| error!(%error))?;
+    let client = Client::try_new(api_key)?;
 
     let mut builder = client.geocoding().with_address(&args.query);
 
@@ -84,10 +81,7 @@ pub async fn run(args: Args) -> Result<()> {
         builder = builder.with_region(region);
     }
 
-    let response = builder
-        .execute()
-        .await
-        .inspect_err(|error| error!(%error))?;
+    let response = builder.execute().await?;
 
     println!("\n{}", format_geocoding_response(&response));
 

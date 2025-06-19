@@ -102,10 +102,11 @@ impl ListView {
             .collect()
     }
 
-    pub fn extract_items(&self) -> Vec<RentListItem> {
+    pub fn extract_items(&self) -> Result<Vec<RentListItem>, super::error::Error> {
         let selector = &*ITEM_SELECTOR;
 
-        self.document
+        let items = self
+            .document
             .select(selector)
             .filter_map(|item| {
                 let (link, title) = self.extract_item_link_and_title(&item);
@@ -118,7 +119,13 @@ impl ListView {
                     images: self.extract_item_images(&item),
                 })
             })
-            .collect()
+            .collect::<Vec<_>>();
+
+        if items.is_empty() {
+            Err(super::error::Error::NoItems)
+        } else {
+            Ok(items)
+        }
     }
 }
 

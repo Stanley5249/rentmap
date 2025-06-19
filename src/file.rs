@@ -25,7 +25,8 @@ macro_rules! file_error_ctors {
 }
 
 #[derive(Debug, Error, Diagnostic)]
-#[error("'{path}': {source}")]
+#[error("{path}")]
+#[diagnostic(code(file::path_error))]
 pub struct PathError {
     path: PathBuf,
     #[source]
@@ -50,14 +51,29 @@ pub enum FileError {
     #[error(transparent)]
     SerdeToml(#[from] toml::de::Error),
 
-    #[error("failed to make directory at {0}")]
-    MakeDirectory(PathError),
+    #[error("failed to create directory at {0}")]
+    #[diagnostic(code(file::make_directory))]
+    MakeDirectory(
+        #[source]
+        #[diagnostic_source]
+        PathError,
+    ),
 
     #[error("failed to save file at {0}")]
-    SaveFile(PathError),
+    #[diagnostic(code(file::save_file))]
+    SaveFile(
+        #[source]
+        #[diagnostic_source]
+        PathError,
+    ),
 
     #[error("failed to load file at {0}")]
-    LoadFile(PathError),
+    #[diagnostic(code(file::load_file))]
+    LoadFile(
+        #[source]
+        #[diagnostic_source]
+        PathError,
+    ),
 }
 
 impl FileError {
@@ -156,7 +172,7 @@ where
     let path = path.as_ref();
 
     let bytes: Bytes = fs::read(path)
-        .map_err(|source| FileError::save_file(path, source))?
+        .map_err(|source| FileError::load_file(path, source))?
         .into();
 
     info!(

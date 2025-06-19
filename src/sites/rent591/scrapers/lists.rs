@@ -1,4 +1,5 @@
-use tracing::{debug, error, info, warn};
+use miette::{Report, Result};
+use tracing::{debug, error, info, instrument, warn};
 use url::Url;
 
 use crate::sites::rent591::model::{RentList, RentLists};
@@ -13,89 +14,90 @@ fn build_page_url(base_url: &Url, page_number: u32) -> Url {
     page_url
 }
 
-async fn scrape_rent_list(fetcher: &Fetcher, url: Url) -> Option<RentList> {
-    let response = match fetcher.try_fetch(&url).await {
-        Ok(response) => response,
-        Err(error) => {
-            warn!(%url, %error);
-            return None;
-        }
-    };
+async fn scrape_rent_list(
+    fetcher: &Fetcher,
+    base_url: &Url,
+    page_number: u32,
+) -> Result<(ListView, RentList), Report> {
+    let url = build_page_url(base_url, page_number);
+
+    let response = fetcher.try_fetch(&url).await?;
 
     let list_view: ListView = response.into();
-    let rent_list_items = list_view.extract_items();
+    let rent_list_items = list_view.extract_items()?;
 
     debug!(%url, item_count = rent_list_items.len());
 
-    Some(RentList {
+    let rent_list = RentList {
         url,
         items: rent_list_items,
-    })
+    };
+
+    Ok((list_view, rent_list))
 }
 
+#[instrument(skip_all, fields(%base_url))]
 pub async fn scrape_rent_lists(
     fetcher: &Fetcher,
     base_url: Url,
     limit: Option<u32>,
-) -> Result<RentLists, crate::web::error::Error> {
-    let url = build_page_url(&base_url, 1);
+) -> Result<RentLists, Report> {
+    // Scrape first page
+    let (first_list_view, first_list) = scrape_rent_list(fetcher, &base_url, 1).await?;
 
-    let first_list = fetcher
-        .try_fetch(&url)
-        .await
-        .inspect_err(|error| error!(%base_url, %error))?;
-
-    let first_list_view: ListView = first_list.into();
-
+    // Extract metadata from first page
     let page_count = match first_list_view.extract_page_count() {
         Some(page_count) => {
-            debug!(%base_url, page_count);
+            debug!(page_count);
             page_count
         }
         None => {
-            debug!(%base_url, "no page count, fallback to 1");
+            warn!(page_count = "none", fallback = 1);
             1
         }
     };
 
     let item_count = match first_list_view.extract_item_count() {
         Some(item_count) => {
-            debug!(%base_url, item_count);
+            debug!(item_count);
             item_count
         }
         None => {
-            debug!(%base_url, "no item count, fallback to 0");
+            warn!(item_count = "none", fallback = 0);
             0
         }
     };
-
-    let rent_list_items = first_list_view.extract_items();
-    debug!(%url, item_count = rent_list_items.len());
 
     let max_pages = match limit {
         Some(limit) => std::cmp::min(page_count, limit),
         None => page_count,
     };
 
-    let rent_list = Some(RentList {
-        url,
-        items: rent_list_items,
-    });
     let mut rent_lists = Vec::with_capacity(max_pages as usize);
-    rent_lists.push(rent_list);
 
+    rent_lists.push(Some(first_list));
+
+    // Scrape remaining pages
     for page_number in 2..=max_pages {
-        let url = build_page_url(&base_url, page_number);
-        let rent_list = scrape_rent_list(fetcher, url).await;
+        let rent_list = match scrape_rent_list(fetcher, &base_url, page_number).await {
+            Ok((_, list)) => Some(list),
+
+            Err(report) => {
+                error!(%page_number, %report);
+                eprintln!("{:?}", report);
+                None
+            }
+        };
+
         rent_lists.push(rent_list);
     }
 
-    let err = rent_lists.iter().filter(|p| p.is_none()).count();
-    let ok = rent_lists.len() - err;
-
-    match err {
-        0 => info!(%base_url, ok, "all lists scraped successfully"),
-        _ => warn!(%base_url, ok, err, "some lists failed to scrape"),
+    match rent_lists.iter().filter(|p| p.is_none()).count() {
+        0 => info!(ok = max_pages, "all lists scraped successfully"),
+        err => warn!(
+            ok = rent_lists.len() - err,
+            err, "some lists failed to scrape"
+        ),
     }
 
     Ok(RentLists {

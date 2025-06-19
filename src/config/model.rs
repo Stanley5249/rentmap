@@ -1,8 +1,9 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+use miette::IntoDiagnostic;
 use serde::Deserialize;
-use tracing::warn;
+use tracing::error;
 
 use crate::config::geocoding::GeocodingConfig;
 use crate::config::google::GoogleConfig;
@@ -31,6 +32,13 @@ where
 }
 
 pub fn load_config() -> Option<Config> {
-    find_config(&"rentmap.toml")
-        .and_then(|path| load_toml(&path).inspect_err(|error| warn!(%error)).ok())
+    find_config(&"rentmap.toml").and_then(|path| {
+        load_toml(&path)
+            .into_diagnostic()
+            .inspect_err(|report| {
+                error!(%report);
+                eprintln!("{:?}", report);
+            })
+            .ok()
+    })
 }

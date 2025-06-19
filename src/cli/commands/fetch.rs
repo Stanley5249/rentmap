@@ -2,7 +2,7 @@
 
 use clap::Parser;
 use miette::Result;
-use tracing::{debug, error};
+use tracing::debug;
 use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
@@ -21,14 +21,11 @@ pub struct Args {
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 
-    make_directory(&args.fetcher.out_dir).inspect_err(|error| error!(%error))?;
+    make_directory(&args.fetcher.out_dir)?;
 
     let fetcher = setup_fetcher(&args.fetcher);
 
-    let _ = fetcher
-        .try_fetch(&args.url)
-        .await
-        .inspect_err(|error| error!(%error))?;
+    let _ = fetcher.try_fetch(&args.url).await?;
 
     Ok(())
 }

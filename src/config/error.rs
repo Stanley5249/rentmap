@@ -2,12 +2,12 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic)]
-#[error("API key not found")]
+#[error("api key not found")]
 #[diagnostic(
-    code(config::api_key_not_found),
+    code(config::no_api_key),
     help(
-        "Provide your Google API key via environment variable GOOGLE_API_KEY, command line --api-key flag, or config file with 'api_key = \"your-key\"' in rentmap.toml. Make sure to enable both Maps API and Vision API in Google Cloud Platform."
+        "set GOOGLE_API_KEY environment variable, use --api-key flag, or add 'api_key = \"your-key\"' to rentmap.toml"
     ),
-    url("https://developers.google.com/maps/documentation/geocoding/get-api-key")
+    url("https://github.com/Stanley5249/rentmap#setup-your-google-api-key")
 )]
-pub struct ApiKeyNotFound;
+pub struct NoApiKey;

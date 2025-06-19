@@ -4,7 +4,7 @@ use std::ops::Deref;
 use clap::Args;
 use serde::Deserialize;
 
-use super::error::ApiKeyNotFound;
+use super::error::NoApiKey;
 
 /// Google API configuration for cloud services
 #[derive(Debug, Deserialize, Args)]
@@ -16,8 +16,8 @@ pub struct GoogleConfig {
 
 impl GoogleConfig {
     /// Returns the API key as a string, or an error if it's missing
-    pub fn get_api_key(self) -> Result<String, ApiKeyNotFound> {
-        self.api_key.map(Into::into).ok_or(ApiKeyNotFound)
+    pub fn get_api_key(self) -> Result<String, NoApiKey> {
+        self.api_key.map(Into::into).ok_or(NoApiKey)
     }
 }
 

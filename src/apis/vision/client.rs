@@ -73,7 +73,7 @@ impl Client {
         let num_responses = batch_response.responses.len();
 
         if num_requests != num_responses {
-            return Err(super::error::Error::ImageResponseCountMismatch {
+            return Err(super::error::Error::CountMismatch {
                 images: num_requests,
                 responses: num_responses,
             });
@@ -84,7 +84,7 @@ impl Client {
         for response in batch_response.responses {
             let text = response
                 .full_text_annotation
-                .ok_or(super::error::Error::TextAnnotationMissing)?
+                .ok_or(super::error::Error::NoText)?
                 .text
                 .into();
 
