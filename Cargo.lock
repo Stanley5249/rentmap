@@ -3054,6 +3054,7 @@ dependencies = [
  "google-cloud-vision-v1",
  "google_maps",
  "miette",
+ "sanitise-file-name",
  "scraper",
  "serde",
  "serde_json",
@@ -3346,6 +3347,12 @@ checksum = "96b02de82ddbe1b636e6170c21be622223aea188ef2e139be0a5b219ec215323"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "sanitise-file-name"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19d36299972b96b8ae7e8f04ecbf75fb41a27bf3781af00abcf57609774cb911"
 
 [[package]]
 name = "schannel"
