@@ -18,7 +18,7 @@ pub struct FetcherArgs {
 pub fn setup_fetcher(opts: &FetcherArgs, workspace: &Workspace) -> Fetcher {
     let mut fetcher = Fetcher::new();
     if opts.html {
-        fetcher = fetcher.with_save(workspace.html());
+        fetcher = fetcher.with_workspace(workspace.clone());
     }
     if opts.clean {
         fetcher = fetcher.with_clean();
