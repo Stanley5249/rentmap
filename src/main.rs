@@ -16,15 +16,10 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Scrape rental listings from rent.591.com.tw and save as JSON
     Lists(lists::Args),
-    /// Augment existing rental lists with detailed item data
     Items(items::Args),
-    /// Download and clean HTML pages
     Fetch(fetch::Args),
-    /// Geocode addresses and locations
     Geocoding(geocoding::Args),
-    /// Extract text from images using Google Vision API
     Ocr(ocr::Args),
 }
 

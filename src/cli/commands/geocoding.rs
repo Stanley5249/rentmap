@@ -11,6 +11,7 @@ use crate::config::google::GoogleConfig;
 use crate::config::model::{Config, load_config};
 use crate::pretty::ToPrettyString;
 
+/// Geocode addresses and locations
 #[derive(Debug, Parser)]
 pub struct Args {
     /// Address or place to geocode

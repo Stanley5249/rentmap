@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use miette::IntoDiagnostic;
 use scraper::Html;
@@ -22,8 +22,8 @@ impl Fetcher {
         Self::default()
     }
 
-    pub fn with_save<P: AsRef<Path>>(mut self, output_dir: P) -> Self {
-        self.save = Some(output_dir.as_ref().to_path_buf());
+    pub fn with_save(mut self, out_dir: PathBuf) -> Self {
+        self.save = Some(out_dir);
         self
     }
 
@@ -52,8 +52,8 @@ impl Fetcher {
             page.html = document.html();
         }
 
-        if let Some(output_dir) = &self.save {
-            if let Err(report) = save_page(&page, output_dir).into_diagnostic() {
+        if let Some(out_dir) = &self.save {
+            if let Err(report) = save_page(&page, out_dir).into_diagnostic() {
                 warn!(%report);
                 eprintln!("{:?}", report);
             }
