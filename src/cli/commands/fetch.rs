@@ -25,9 +25,9 @@ pub struct Args {
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 
-    args.workspace.ensure()?;
+    args.workspace.init()?;
 
-    let fetcher = setup_fetcher(&args.fetcher, &args.workspace);
+    let fetcher = setup_fetcher(&args.fetcher, args.workspace);
 
     let _ = fetcher.try_fetch(&args.url).await?;
 

@@ -28,14 +28,13 @@ pub struct Args {
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 
-    args.workspace.ensure()?;
+    args.workspace.init()?;
 
-    let fetcher = setup_fetcher(&args.fetcher, &args.workspace);
+    let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    let rent_lists = scrape_rent_lists(&fetcher, args.url, args.limit).await?;
+    let rent_lists = scrape_rent_lists(&fetcher, args.url.clone(), args.limit).await?;
 
-    args.workspace
-        .save_data_json(&"rent591_lists.json", &rent_lists)?;
+    args.workspace.save_data_now(&rent_lists, &args.url)?;
 
     Ok(())
 }

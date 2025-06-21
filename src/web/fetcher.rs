@@ -51,7 +51,7 @@ impl Fetcher {
         }
 
         if let Some(workspace) = &self.workspace {
-            if let Err(report) = workspace.save_html_page(&page).into_diagnostic() {
+            if let Err(report) = workspace.save_page(&page).into_diagnostic() {
                 error!(%report);
                 eprintln!("{:?}", report);
             }

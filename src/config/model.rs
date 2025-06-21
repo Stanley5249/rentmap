@@ -20,19 +20,19 @@ pub struct Config {
     pub ocr: Option<OcrConfig>,
 }
 
-pub fn find_config<P>(file_name: &P) -> Option<PathBuf>
+pub fn find_config<P>(file_name: P) -> Option<PathBuf>
 where
     P: AsRef<Path>,
 {
     [env::current_dir().ok(), dirs::home_dir()]
         .into_iter()
         .flatten()
-        .map(|dir| dir.join(file_name))
+        .map(|dir| dir.join(&file_name))
         .find(|path| path.exists())
 }
 
 pub fn load_config() -> Option<Config> {
-    find_config(&"rentmap.toml").and_then(|path| {
+    find_config("rentmap.toml").and_then(|path| {
         load_toml(&path)
             .into_diagnostic()
             .inspect_err(|report| {
