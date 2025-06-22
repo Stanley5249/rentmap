@@ -7,7 +7,7 @@ use url::Url;
 use crate::url_wrapper;
 
 #[derive(Debug, Error, Diagnostic)]
-pub enum UrlError {
+pub enum Error {
     #[error("invalid rent.591.com.tw URL path")]
     #[diagnostic(
         code(sites::rent591::url::invalid_path),
@@ -17,46 +17,46 @@ pub enum UrlError {
 }
 
 /// URL path type for rent.591.com.tw
-pub enum PathType {
+pub enum PathUrl {
     /// List page: `/list` with optional query parameters
     List(ListUrl),
     /// Item detail page: `/<id>` where id is numeric
     Item(ItemUrl),
 }
 
-impl TryFrom<Url> for PathType {
-    type Error = UrlError;
+impl TryFrom<Url> for PathUrl {
+    type Error = Error;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
-        let mut segments = url.path_segments().ok_or(UrlError::InvalidPath)?;
+        let mut segments = url.path_segments().ok_or(Error::InvalidPath)?;
 
         match (segments.next(), segments.next()) {
-            (Some("list"), None) => Ok(PathType::List(ListUrl(url))),
+            (Some("list"), None) => Ok(PathUrl::List(ListUrl(url))),
 
             (Some(id), None) if !id.is_empty() && id.chars().all(|c| c.is_ascii_digit()) => {
-                Ok(PathType::Item(ItemUrl(url)))
+                Ok(PathUrl::Item(ItemUrl(url)))
             }
-            _ => Err(UrlError::InvalidPath),
+            _ => Err(Error::InvalidPath),
         }
     }
 }
 
-impl From<PathType> for Url {
-    fn from(path_type: PathType) -> Url {
+impl From<PathUrl> for Url {
+    fn from(path_type: PathUrl) -> Url {
         match path_type {
-            PathType::List(url) => url.0,
-            PathType::Item(url) => url.0,
+            PathUrl::List(url) => url.0,
+            PathUrl::Item(url) => url.0,
         }
     }
 }
 
-impl Deref for PathType {
+impl Deref for PathUrl {
     type Target = Url;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            PathType::List(url) => &url.0,
-            PathType::Item(url) => &url.0,
+            PathUrl::List(url) => &url.0,
+            PathUrl::Item(url) => &url.0,
         }
     }
 }
