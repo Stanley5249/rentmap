@@ -34,7 +34,7 @@ pub async fn run(args: Args) -> Result<()> {
 
     let rent_lists = scrape_rent_lists(&fetcher, args.url.clone(), args.limit).await?;
 
-    args.workspace.save_data_now(&rent_lists, &args.url)?;
+    args.workspace.save_data(&rent_lists, args.url)?;
 
     Ok(())
 }

@@ -1,14 +1,16 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::path::PathBuf;
+use std::path::{PathBuf, absolute};
 
 use chrono::{DateTime, Utc};
 use clap::Args;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tracing::debug;
+use url::Url;
 
 use super::FileError;
+use super::metadata::Metadata;
 use super::ops::{find_latest_file, load_json, make_directory, save_html, save_json};
 use super::url::url_to_file_name;
 use crate::web::page::Page;
@@ -45,62 +47,93 @@ impl Workspace {
         save_html(&page.html, path)
     }
 
-    pub fn save_data_now<V, K>(&self, data: &V, key: &K) -> Result<DateTime<Utc>, FileError>
+    pub fn save_data<T>(&self, data: &T, url: Url) -> Result<DateTime<Utc>, FileError>
     where
-        V: Serialize,
-        K: Hash,
+        T: Serialize,
     {
         let now = Utc::now();
-        self.save_data_at(data, key, &now)?;
+        self.save_data_at(data, url, now)?;
         Ok(now)
     }
 
-    pub fn save_data_at<V, K>(
+    pub fn save_data_at<T>(
         &self,
-        data: &V,
-        key: &K,
-        timestamp: &DateTime<Utc>,
+        data: &T,
+        url: Url,
+        timestamp: DateTime<Utc>,
     ) -> Result<(), FileError>
     where
-        V: Serialize,
-        K: Hash,
+        T: Serialize,
     {
-        let timestamp_str = timestamp.format("%Y-%m-%dT%H-%M-%S").to_string();
+        let file_name = timestamp.format("%Y-%m-%dT%H-%M-%S").to_string();
 
         let mut path = self.data();
-        path.push(hash(key));
+        path.push(hash(&url));
 
         make_directory(&path)?;
-        // if success, update metadata
 
-        path.push(timestamp_str);
+        path.push(file_name);
         path.set_extension("json");
-        save_json(data, &path)
+        save_json(data, &path)?;
+
+        self.update_metadata(url, path, timestamp)?;
+
+        Ok(())
     }
 
-    pub fn load_data_latest<T, K>(&self, key: &K) -> Result<(DateTime<Utc>, T), FileError>
+    pub fn load_data<T>(&self, url: &Url) -> Result<(T, DateTime<Utc>), FileError>
     where
         T: DeserializeOwned,
-        K: Hash,
     {
         let mut dir = self.data();
-        dir.push(hash(key));
-        find_latest_file(&dir, "json").and_then(|(ts, path)| load_json(path).map(|data| (ts, data)))
+        dir.push(hash(url));
+        find_latest_file(&dir, "json").and_then(|(ts, path)| load_json(path).map(|data| (data, ts)))
     }
 
-    pub fn load_data_at<T, K>(&self, key: &K, timestamp: DateTime<Utc>) -> Result<T, FileError>
+    pub fn load_data_at<T>(&self, url: &Url, timestamp: DateTime<Utc>) -> Result<T, FileError>
     where
         T: DeserializeOwned,
-        K: Hash,
     {
         let mut path = self.data();
-        path.push(hash(key));
+        path.push(hash(url));
         path.push(timestamp.format("%Y-%m-%dT%H-%M-%S").to_string());
         path.set_extension("json");
         load_json(path)
     }
 
-    // TODO: Add metadata persistence for hash -> URL mapping
+    fn update_metadata(
+        &self,
+        url: Url,
+        path: PathBuf,
+        timestamp: DateTime<Utc>,
+    ) -> Result<Metadata, FileError> {
+        let metadata_path = self.data().join("metadata.json");
+
+        let mut metadata_list: Vec<Metadata> = load_json(&metadata_path).unwrap_or_default();
+
+        let index = match metadata_list.iter().position(|item| item.url == url) {
+            Some(i) => {
+                metadata_list[i].updated_at = Some(timestamp);
+                i
+            }
+            None => {
+                let i = metadata_list.len();
+                let path = absolute(&path).unwrap_or(path);
+                let metadata = Metadata {
+                    url,
+                    path,
+                    created_at: timestamp,
+                    updated_at: None,
+                };
+                metadata_list.push(metadata);
+                i
+            }
+        };
+
+        save_json(&metadata_list, &metadata_path)?;
+
+        Ok(metadata_list.swap_remove(index))
+    }
 }
 
 fn hash<T: Hash>(value: &T) -> String {

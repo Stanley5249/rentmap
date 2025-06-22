@@ -1,9 +1,11 @@
 mod error;
+mod metadata;
 mod ops;
 mod url;
 mod workspace;
 
 pub use error::{FileError, PathError};
+pub use metadata::Metadata;
 pub use ops::{
     find_latest_file, iter_files_in_directory, load_image, load_json, load_toml, make_directory,
     save_html, save_json,
@@ -15,7 +17,6 @@ pub use workspace::Workspace;
 macro_rules! url_wrapper {
     ($(#[$attr:meta])* $name:ident) => {
         $(#[$attr])*
-        #[derive(Debug, Clone, Hash)]
         pub struct $name(url::Url);
 
         impl $name {

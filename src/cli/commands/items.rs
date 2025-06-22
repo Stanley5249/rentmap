@@ -28,11 +28,11 @@ pub async fn run(args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    let (ts, rent_lists) = args.workspace.load_data_latest(&args.url)?;
+    let (rent_lists, ts) = args.workspace.load_data(&args.url)?;
 
     let rent_lists = scrape_rent_items(&fetcher, rent_lists).await?;
 
-    args.workspace.save_data_at(&rent_lists, &args.url, &ts)?;
+    args.workspace.save_data_at(&rent_lists, args.url, ts)?;
 
     Ok(())
 }
