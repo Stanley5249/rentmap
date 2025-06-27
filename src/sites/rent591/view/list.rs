@@ -117,7 +117,6 @@ impl ListView {
                     tags: self.extract_item_info_tags(&item),
                     txts: self.extract_item_info_txts(&item),
                     images: self.extract_item_images(&item),
-                    detail: None,
                 })
             })
             .collect::<Vec<_>>();

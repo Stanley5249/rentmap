@@ -17,9 +17,9 @@ fn build_page_url(base_url: &Url, page_number: u32) -> Url {
 async fn scrape_rent_list(
     fetcher: &Fetcher,
     base_url: &Url,
-    page_number: u32,
+    page: u32,
 ) -> Result<(ListView, RentList), Report> {
-    let url = build_page_url(base_url, page_number);
+    let url = build_page_url(base_url, page);
 
     let response = fetcher.try_fetch(&url).await?;
 
@@ -29,21 +29,21 @@ async fn scrape_rent_list(
     debug!(%url, item_count = rent_list_items.len());
 
     let rent_list = RentList {
-        url,
+        page,
         items: rent_list_items,
     };
 
     Ok((list_view, rent_list))
 }
 
-#[instrument(skip_all, fields(%base_url))]
+#[instrument(skip_all, fields(%url))]
 pub async fn scrape_rent_lists(
     fetcher: &Fetcher,
-    base_url: Url,
+    url: Url,
     limit: Option<u32>,
 ) -> Result<RentLists, Report> {
     // Scrape first page
-    let (first_list_view, first_list) = scrape_rent_list(fetcher, &base_url, 1).await?;
+    let (first_list_view, first_list) = scrape_rent_list(fetcher, &url, 1).await?;
 
     // Extract metadata from first page
     let page_count = match first_list_view.extract_page_count() {
@@ -79,7 +79,7 @@ pub async fn scrape_rent_lists(
 
     // Scrape remaining pages
     for page_number in 2..=max_pages {
-        let rent_list = match scrape_rent_list(fetcher, &base_url, page_number).await {
+        let rent_list = match scrape_rent_list(fetcher, &url, page_number).await {
             Ok((_, list)) => Some(list),
 
             Err(report) => {
@@ -101,7 +101,7 @@ pub async fn scrape_rent_lists(
     }
 
     Ok(RentLists {
-        base_url,
+        url,
         page_count,
         item_count,
         lists: rent_lists,

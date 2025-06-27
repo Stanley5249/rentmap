@@ -1,17 +1,12 @@
 mod error;
-mod metadata;
 mod ops;
 mod url;
 mod workspace;
 
 pub use error::{FileError, PathError};
-pub use metadata::Metadata;
-pub use ops::{
-    find_latest_file, iter_files_in_directory, load_image, load_json, load_toml, make_directory,
-    save_html, save_json,
-};
+pub use ops::{load_image, load_json, load_toml, make_directory, save_html, save_json};
 pub use url::{normalize_url, url_to_file_name};
-pub use workspace::Workspace;
+pub use workspace::{TimedRecord, Workspace};
 
 #[macro_export]
 macro_rules! url_wrapper {
