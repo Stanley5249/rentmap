@@ -1,3 +1,4 @@
+use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
@@ -8,13 +9,18 @@ use serde::{Deserialize, Serialize};
 use super::FileError;
 use super::ops::{load_json, make_directory, save_html, save_json};
 use super::url::url_to_file_name;
+use crate::file::exists_and_nonempty;
 use crate::web::page::Page;
+
+type UpdateResult<T> = Result<T, T>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TimedRecord<T> {
     pub timestamp: DateTime<Utc>,
     pub data: T,
 }
+
+pub type TimedRecords<T> = Vec<TimedRecord<T>>;
 
 impl<T> TimedRecord<T> {
     pub fn new(timestamp: DateTime<Utc>, data: T) -> Self {
@@ -29,6 +35,25 @@ impl<T> TimedRecord<T> {
     }
 }
 
+impl<T> From<T> for TimedRecord<T> {
+    fn from(data: T) -> Self {
+        Self::now(data)
+    }
+}
+
+pub trait SortByTimestamp {
+    fn sort_by_timestamp(&mut self);
+}
+
+impl<T, U> SortByTimestamp for T
+where
+    T: DerefMut<Target = [TimedRecord<U>]>,
+{
+    fn sort_by_timestamp(&mut self) {
+        self.deref_mut().sort_unstable_by_key(|r| r.timestamp);
+    }
+}
+
 #[derive(Clone, Debug, Args)]
 pub struct Workspace {
     /// The root directory of the workspace
@@ -37,12 +62,43 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub fn data(&self) -> PathBuf {
-        self.root.join("data")
+    fn data_file_for_read<P>(&self, file_name: P) -> PathBuf
+    where
+        P: AsRef<Path>,
+    {
+        let mut path = self.root.join("data");
+        path.push(file_name);
+        path
     }
 
-    pub fn html(&self) -> PathBuf {
-        self.root.join("html")
+    fn data_file_for_write<P>(&self, file_name: P) -> Result<PathBuf, FileError>
+    where
+        P: AsRef<Path>,
+    {
+        let mut path = self.root.join("data");
+        make_directory(&path)?;
+        path.push(file_name);
+        Ok(path)
+    }
+
+    #[allow(dead_code)]
+    fn html_file_for_read<P>(&self, file_name: P) -> PathBuf
+    where
+        P: AsRef<Path>,
+    {
+        let mut path = self.root.join("html");
+        path.push(file_name);
+        path
+    }
+
+    fn html_file_for_write<P>(&self, file_name: P) -> Result<PathBuf, FileError>
+    where
+        P: AsRef<Path>,
+    {
+        let mut path = self.root.join("html");
+        make_directory(&path)?;
+        path.push(file_name);
+        Ok(path)
     }
 
     pub fn init(&self) -> Result<(), FileError> {
@@ -51,84 +107,112 @@ impl Workspace {
 
     pub fn save_page(&self, page: &Page) -> Result<(), FileError> {
         let file_name = url_to_file_name(&page.url_final);
-        let mut path = self.html();
-        make_directory(&path)?;
-        path.push(&file_name);
+        let path = self.html_file_for_write(file_name)?;
         save_html(&page.html, path)
     }
 
-    pub fn save_timed_records<T, P>(
+    pub fn save_records<T, P>(
         &self,
-        data: &Vec<TimedRecord<T>>,
+        records: &TimedRecords<T>,
         file_name: P,
     ) -> Result<(), FileError>
     where
         T: Serialize,
         P: AsRef<Path>,
     {
-        let mut path = self.data();
-        make_directory(&path)?;
-        path.push(file_name);
-        save_json(data, &path)?;
-        Ok(())
+        let path = self.data_file_for_write(file_name)?;
+        save_json(records, &path)
     }
 
-    pub fn load_timed_records<T, P>(&self, file_name: P) -> Result<Vec<TimedRecord<T>>, FileError>
+    pub fn load_records<T, P>(&self, file_name: P) -> Result<TimedRecords<T>, FileError>
     where
         T: DeserializeOwned,
         P: AsRef<Path>,
     {
-        let mut path = self.data();
-        path.push(file_name);
-        let mut records: Vec<TimedRecord<T>> = load_json(&path)?;
-        records.sort_unstable_by_key(|r| r.timestamp);
+        let path = self.data_file_for_read(file_name);
+        let mut records = load_records_or_default(&path)?;
+        records.sort_by_timestamp();
         Ok(records)
     }
 
-    pub fn add_timed_record<T, P>(
+    pub fn add_record<T, P>(
         &self,
-        data: T,
+        value: TimedRecord<T>,
         file_name: P,
-    ) -> Result<Vec<TimedRecord<T>>, FileError>
+    ) -> Result<TimedRecords<T>, FileError>
     where
         T: Serialize + DeserializeOwned,
         P: AsRef<Path>,
     {
-        let mut path = self.data();
-        make_directory(&path)?;
+        self.update_records(file_name, |mut records| {
+            records.push(value);
+            Ok(records)
+        })
+    }
 
-        path.push(file_name);
+    pub fn update_records<T, P, F>(
+        &self,
+        file_name: P,
+        func: F,
+    ) -> Result<TimedRecords<T>, FileError>
+    where
+        T: DeserializeOwned + Serialize,
+        P: AsRef<Path>,
+        F: FnOnce(TimedRecords<T>) -> UpdateResult<TimedRecords<T>>,
+    {
+        let path = self.data_file_for_write(&file_name)?;
+        let mut records = load_records_or_default(&path)?;
 
-        let record = TimedRecord::now(data);
-
-        let records = if path.exists() {
-            let mut records = load_json(&path)?;
-            sort_and_insort_by_timestamp(&mut records, record);
-            records
-        } else {
-            vec![record]
+        records = match func(records) {
+            Ok(mut value) => {
+                value.sort_by_timestamp();
+                save_json(&value, &path)?;
+                value
+            }
+            Err(value) => value,
         };
 
-        save_json(&records, &path)?;
+        Ok(records)
+    }
+
+    pub async fn update_records_async<T, P, F>(
+        &self,
+        file_name: P,
+        func: F,
+    ) -> Result<TimedRecords<T>, FileError>
+    where
+        T: DeserializeOwned + Serialize,
+        P: AsRef<Path>,
+        F: AsyncFnOnce(TimedRecords<T>) -> UpdateResult<TimedRecords<T>>,
+    {
+        let path = self.data_file_for_write(&file_name)?;
+        let mut records = load_records_or_default(&path)?;
+
+        records = match func(records).await {
+            Ok(mut value) => {
+                value.sort_by_timestamp();
+                save_json(&value, &path)?;
+                value
+            }
+            Err(value) => value,
+        };
 
         Ok(records)
     }
 }
 
-fn sort_and_insort_by_timestamp<T>(
-    records: &mut Vec<TimedRecord<T>>,
-    record: TimedRecord<T>,
-) -> usize
+fn load_records_or_default<T, P>(path: P) -> Result<TimedRecords<T>, FileError>
 where
-    T: Serialize + DeserializeOwned,
+    T: DeserializeOwned,
+    P: AsRef<Path>,
 {
-    records.sort_unstable_by_key(|r| r.timestamp);
+    let path = path.as_ref();
 
-    let index = records
-        .binary_search_by_key(&record.timestamp, |r| r.timestamp)
-        .unwrap_or_else(|s| s);
+    let records = if exists_and_nonempty(path) {
+        load_json(path)?
+    } else {
+        Default::default()
+    };
 
-    records.insert(index, record);
-
-    index
+    Ok(records)
 }

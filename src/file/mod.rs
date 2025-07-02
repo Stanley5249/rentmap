@@ -4,9 +4,11 @@ mod url;
 mod workspace;
 
 pub use error::{FileError, PathError};
-pub use ops::{load_image, load_json, load_toml, make_directory, save_html, save_json};
+pub use ops::{
+    exists_and_nonempty, load_image, load_json, load_toml, make_directory, save_html, save_json,
+};
 pub use url::{normalize_url, url_to_file_name};
-pub use workspace::{TimedRecord, Workspace};
+pub use workspace::{SortByTimestamp, TimedRecord, TimedRecords, Workspace};
 
 #[macro_export]
 macro_rules! url_wrapper {

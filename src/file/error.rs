@@ -33,8 +33,4 @@ pub enum FileError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Path(#[from] PathError),
-
-    #[error("file not found")]
-    #[diagnostic(code(file::not_found))]
-    NotFound,
 }

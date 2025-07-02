@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 use miette::Result;
-use rentmap::cli::commands::{fetch, geocoding, items, lists, ocr};
+use rentmap::cli::commands::{fetch, geocoding, item, list, ocr};
 use tracing::error;
 use tracing_subscriber::{self, EnvFilter};
 
@@ -16,8 +16,8 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Lists(lists::Args),
-    Items(items::Args),
+    List(list::Args),
+    Item(item::Args),
     Fetch(fetch::Args),
     Geocoding(geocoding::Args),
     Ocr(ocr::Args),
@@ -40,8 +40,8 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     match cli.command {
-        Commands::Lists(args) => lists::run(args).await,
-        Commands::Items(args) => items::run(args).await,
+        Commands::List(args) => list::run(args).await,
+        Commands::Item(args) => item::run(args).await,
         Commands::Fetch(args) => fetch::run(args).await,
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,

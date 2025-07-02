@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 
 use miette::IntoDiagnostic;
 use serde::Deserialize;
-use tracing::error;
 
 use crate::config::geocoding::GeocodingConfig;
 use crate::config::google::GoogleConfig;
 use crate::config::ocr::OcrConfig;
+use crate::error::TraceReport;
 use crate::file::load_toml;
 
 #[derive(Debug, Deserialize)]
@@ -32,13 +32,6 @@ where
 }
 
 pub fn load_config() -> Option<Config> {
-    find_config("rentmap.toml").and_then(|path| {
-        load_toml(&path)
-            .into_diagnostic()
-            .inspect_err(|report| {
-                error!(%report);
-                eprintln!("{:?}", report);
-            })
-            .ok()
-    })
+    find_config("rentmap.toml")
+        .and_then(|path| load_toml(&path).into_diagnostic().trace_report().ok())
 }

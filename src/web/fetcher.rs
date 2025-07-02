@@ -1,8 +1,8 @@
 use miette::IntoDiagnostic;
 use scraper::Html;
-use tracing::error;
 use url::Url;
 
+use crate::error::TraceReport;
 use crate::file::Workspace;
 use crate::web::backends::FetcherBackend;
 use crate::web::dom::clean_html;
@@ -51,10 +51,11 @@ impl Fetcher {
         }
 
         if let Some(workspace) = &self.workspace {
-            if let Err(report) = workspace.save_page(&page).into_diagnostic() {
-                error!(%report);
-                eprintln!("{:?}", report);
-            }
+            workspace
+                .save_page(&page)
+                .into_diagnostic()
+                .trace_report()
+                .ok();
         }
 
         Ok(document)

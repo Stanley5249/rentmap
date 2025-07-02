@@ -17,46 +17,46 @@ pub enum Error {
 }
 
 /// URL path type for rent.591.com.tw
-pub enum PathUrl {
+pub enum Rent591Url {
     /// List page: `/list` with optional query parameters
     List(ListUrl),
-    /// Item detail page: `/<id>` where id is numeric
+    /// Item page: `/<id>` where id is numeric
     Item(ItemUrl),
 }
 
-impl TryFrom<Url> for PathUrl {
+impl TryFrom<Url> for Rent591Url {
     type Error = Error;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         let mut segments = url.path_segments().ok_or(Error::InvalidPath)?;
 
         match (segments.next(), segments.next()) {
-            (Some("list"), None) => Ok(PathUrl::List(ListUrl(url))),
+            (Some("list"), None) => Ok(Rent591Url::List(ListUrl(url))),
 
             (Some(id), None) if !id.is_empty() && id.chars().all(|c| c.is_ascii_digit()) => {
-                Ok(PathUrl::Item(ItemUrl(url)))
+                Ok(Rent591Url::Item(ItemUrl(url)))
             }
             _ => Err(Error::InvalidPath),
         }
     }
 }
 
-impl From<PathUrl> for Url {
-    fn from(path_type: PathUrl) -> Url {
+impl From<Rent591Url> for Url {
+    fn from(path_type: Rent591Url) -> Url {
         match path_type {
-            PathUrl::List(url) => url.0,
-            PathUrl::Item(url) => url.0,
+            Rent591Url::List(url) => url.0,
+            Rent591Url::Item(url) => url.0,
         }
     }
 }
 
-impl Deref for PathUrl {
+impl Deref for Rent591Url {
     type Target = Url;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            PathUrl::List(url) => &url.0,
-            PathUrl::Item(url) => &url.0,
+            Rent591Url::List(url) => &url.0,
+            Rent591Url::Item(url) => &url.0,
         }
     }
 }
@@ -81,6 +81,6 @@ url_wrapper! {
 }
 
 url_wrapper! {
-    /// Wrapper for rental item detail URLs
+    /// Wrapper for rental item URLs
     ItemUrl
 }

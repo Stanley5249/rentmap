@@ -79,3 +79,10 @@ where
     info!(path = %path.display(), length = html.len(), "save HTML file");
     Ok(())
 }
+
+pub fn exists_and_nonempty<P>(path: P) -> bool
+where
+    P: AsRef<Path>,
+{
+    fs::metadata(path).is_ok_and(|m| m.len() > 0)
+}

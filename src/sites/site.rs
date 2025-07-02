@@ -19,11 +19,11 @@ pub enum Error {
 
 pub enum SiteUrl {
     /// rent.591.com.tw
-    Rent591(super::rent591::url::PathUrl),
+    Rent591(super::rent591::url::Rent591Url),
 }
 
-impl From<super::rent591::url::PathUrl> for SiteUrl {
-    fn from(url: super::rent591::url::PathUrl) -> Self {
+impl From<super::rent591::url::Rent591Url> for SiteUrl {
+    fn from(url: super::rent591::url::Rent591Url) -> Self {
         SiteUrl::Rent591(url)
     }
 }
@@ -41,7 +41,7 @@ impl TryFrom<Url> for SiteUrl {
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match url.domain() {
-            Some("rent.591.com.tw") => Ok(super::rent591::url::PathUrl::try_from(url)?.into()),
+            Some("rent.591.com.tw") => Ok(super::rent591::url::Rent591Url::try_from(url)?.into()),
             Some(domain) => Err(Error::InvalidSite(domain.into())),
             None => Err(Error::InvalidDomain),
         }

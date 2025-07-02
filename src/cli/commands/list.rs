@@ -5,7 +5,7 @@ use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::file::Workspace;
-use crate::sites::rent591::scrapers::scrape_rent_lists;
+use crate::sites::rent591::scrapers::scrape_rent_list;
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON
 #[derive(Debug, Parser)]
@@ -32,10 +32,10 @@ pub async fn run(args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    let rent_lists = scrape_rent_lists(&fetcher, args.url, args.limit).await?;
+    let list_record = scrape_rent_list(&fetcher, args.url, args.limit).await?;
 
     args.workspace
-        .add_timed_record(rent_lists, "rent591_lists.json")?;
+        .add_record(list_record.into(), "rent591_lists.json")?;
 
     Ok(())
 }

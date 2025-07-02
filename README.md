@@ -55,7 +55,7 @@ That's it! 🎉
 
 ```bash
 # Scrape rentals with custom output
-rentmap lists "https://rent.591.com.tw/list?region=1&kind=2" --limit 3 --out-file my_rentals.json
+rentmap list "https://rent.591.com.tw/list?region=1&kind=2" --limit 3 --out-file my_rentals.json
 
 # Geocode with language preference  
 rentmap geocoding "東京駅" --language ja --region jp
@@ -67,7 +67,7 @@ rentmap ocr receipt.jpg --languages zh-Hant,en,ja
 rentmap fetch "https://example.com" --out-dir downloads
 
 # Need help with any command?
-rentmap lists --help
+rentmap list --help
 ```
 
 ## Setup Your Google API Key

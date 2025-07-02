@@ -1,11 +1,16 @@
+use std::sync::LazyLock;
+
 use scraper::node::Comment;
 use scraper::{Html, Node, Selector};
 
-use crate::selectors;
+use crate::define_selectors;
 
-selectors! {
-    SCRIPT_SELECTOR: "link[as=\"script\"], script",
+define_selectors! {
+    DomSelectors,
+    script: "link[as=\"script\"], script"
 }
+
+static DOM_SELECTORS: LazyLock<DomSelectors> = LazyLock::new(DomSelectors::new);
 
 fn hide_elements(document: &mut Html, selector: &Selector) {
     let elements: Vec<_> = document
@@ -23,6 +28,6 @@ fn hide_elements(document: &mut Html, selector: &Selector) {
 }
 
 pub fn clean_html(document: &mut Html) {
-    let script_selector = &*SCRIPT_SELECTOR;
+    let script_selector = &DOM_SELECTORS.script;
     hide_elements(document, script_selector);
 }

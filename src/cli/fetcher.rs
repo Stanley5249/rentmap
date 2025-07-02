@@ -15,12 +15,12 @@ pub struct FetcherArgs {
     pub clean: bool,
 }
 
-pub fn setup_fetcher(opts: &FetcherArgs, workspace: Workspace) -> Fetcher {
+pub fn setup_fetcher(args: &FetcherArgs, workspace: Workspace) -> Fetcher {
     let mut fetcher = Fetcher::new();
-    if opts.html {
+    if args.html {
         fetcher = fetcher.with_workspace(workspace);
     }
-    if opts.clean {
+    if args.clean {
         fetcher = fetcher.with_clean();
     }
     fetcher
