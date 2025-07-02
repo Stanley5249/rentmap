@@ -52,7 +52,6 @@ fn format_geocoding_response(response: &GeocodingResponse) -> String {
 }
 
 /// Run the CLI application
-#[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
     let args = match load_config() {
         Some(config) => merge_args(args, config),

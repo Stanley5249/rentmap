@@ -97,7 +97,6 @@ async fn handle_item(workspace: &Workspace, fetcher: &Fetcher, url: &Url) -> Res
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 

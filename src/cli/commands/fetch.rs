@@ -21,7 +21,6 @@ pub struct Args {
     pub fetcher: FetcherArgs,
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 

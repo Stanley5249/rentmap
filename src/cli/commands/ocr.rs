@@ -49,7 +49,6 @@ fn format_ocr_result(detected_text: &OcrString) -> String {
     }
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn run(args: Args) -> Result<()> {
     let args = match load_config() {
         Some(config) => merge_args(args, config),
