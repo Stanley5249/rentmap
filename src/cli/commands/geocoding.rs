@@ -37,12 +37,6 @@ fn merge_args(mut args: Args, config: Config) -> Args {
     args
 }
 
-fn format_args(args: &Args) -> String {
-    let title = "Args:".bold().underline();
-    let table = args.to_pretty_string();
-    format!("{title}\n{table}")
-}
-
 fn format_geocoding_response(response: &GeocodingResponse) -> String {
     let title = "Response:".bold().underline();
 
@@ -65,8 +59,6 @@ pub async fn run(args: Args) -> Result<()> {
         None => args,
     };
     debug!(?args);
-
-    println!("{}", format_args(&args));
 
     let api_key = args.google.get_api_key()?;
 

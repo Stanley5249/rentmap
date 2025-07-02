@@ -39,12 +39,6 @@ fn merge_args(mut args: Args, config: Config) -> Args {
     args
 }
 
-fn format_args(args: &Args) -> String {
-    let title = "Args:".bold().underline();
-    let table = args.to_pretty_string();
-    format!("{title}\n{table}")
-}
-
 fn format_ocr_result(detected_text: &OcrString) -> String {
     if detected_text.is_empty() {
         "No text detected".red().to_string()
@@ -62,8 +56,6 @@ pub async fn run(args: Args) -> Result<()> {
         None => args,
     };
     debug!(?args);
-
-    println!("{}", format_args(&args));
 
     let image_bytes = load_image(&args.path)?;
 
