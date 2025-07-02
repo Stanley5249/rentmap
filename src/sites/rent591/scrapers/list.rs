@@ -1,8 +1,9 @@
-use miette::{Report, Result};
-use tracing::{debug, error, info, instrument, warn};
+use miette::Result;
+use tracing::{debug, info, instrument, warn};
 use url::Url;
 
-use crate::sites::rent591::model::{RentList, RentLists};
+use crate::error::TraceReport;
+use crate::sites::rent591::model::{RentList, RentListPage};
 use crate::sites::rent591::view::ListView;
 use crate::web::fetcher::Fetcher;
 
@@ -14,36 +15,32 @@ fn build_page_url(base_url: &Url, page_number: u32) -> Url {
     page_url
 }
 
-async fn scrape_rent_list(
+async fn scrape_rent_list_page(
     fetcher: &Fetcher,
     base_url: &Url,
-    page_number: u32,
-) -> Result<(ListView, RentList), Report> {
-    let url = build_page_url(base_url, page_number);
+    page: u32,
+) -> Result<(ListView, RentListPage)> {
+    let url = build_page_url(base_url, page);
 
     let response = fetcher.try_fetch(&url).await?;
 
     let list_view: ListView = response.into();
-    let rent_list_items = list_view.extract_items()?;
+    let rent_list_items = list_view.extract_item_summaries()?;
 
     debug!(%url, item_count = rent_list_items.len());
 
-    let rent_list = RentList {
-        url,
+    let rent_list = RentListPage {
+        page,
         items: rent_list_items,
     };
 
     Ok((list_view, rent_list))
 }
 
-#[instrument(skip_all, fields(%base_url))]
-pub async fn scrape_rent_lists(
-    fetcher: &Fetcher,
-    base_url: Url,
-    limit: Option<u32>,
-) -> Result<RentLists, Report> {
+#[instrument(skip_all, fields(%url))]
+pub async fn scrape_rent_list(fetcher: &Fetcher, url: Url, limit: Option<u32>) -> Result<RentList> {
     // Scrape first page
-    let (first_list_view, first_list) = scrape_rent_list(fetcher, &base_url, 1).await?;
+    let (first_list_view, first_list) = scrape_rent_list_page(fetcher, &url, 1).await?;
 
     // Extract metadata from first page
     let page_count = match first_list_view.extract_page_count() {
@@ -73,37 +70,32 @@ pub async fn scrape_rent_lists(
         None => page_count,
     };
 
-    let mut rent_lists = Vec::with_capacity(max_pages as usize);
+    let mut rent_list_pages = Vec::with_capacity(max_pages as usize);
 
-    rent_lists.push(Some(first_list));
+    rent_list_pages.push(Some(first_list));
 
     // Scrape remaining pages
     for page_number in 2..=max_pages {
-        let rent_list = match scrape_rent_list(fetcher, &base_url, page_number).await {
-            Ok((_, list)) => Some(list),
-
-            Err(report) => {
-                error!(%page_number, %report);
-                eprintln!("{:?}", report);
-                None
-            }
-        };
-
-        rent_lists.push(rent_list);
+        let list_page = scrape_rent_list_page(fetcher, &url, page_number)
+            .await
+            .trace_report()
+            .ok()
+            .map(|(_, list)| list);
+        rent_list_pages.push(list_page);
     }
 
-    match rent_lists.iter().filter(|p| p.is_none()).count() {
-        0 => info!(ok = max_pages, "all lists scraped successfully"),
+    match rent_list_pages.iter().filter(|p| p.is_none()).count() {
+        0 => info!(ok = max_pages, "all pages scraped successfully"),
         err => warn!(
-            ok = rent_lists.len() - err,
-            err, "some lists failed to scrape"
+            ok = rent_list_pages.len() - err,
+            err, "some pages failed to scrape"
         ),
     }
 
-    Ok(RentLists {
-        base_url,
+    Ok(RentList {
+        url,
         page_count,
         item_count,
-        lists: rent_lists,
+        pages: rent_list_pages,
     })
 }

@@ -5,8 +5,17 @@ pub mod fetcher;
 pub mod page;
 
 #[macro_export]
-macro_rules! selectors {
-    {$($name:ident: $str:expr),* $(,)?} => {
-        $(static $name: std::sync::LazyLock<scraper::Selector> = std::sync::LazyLock::new(|| scraper::Selector::parse($str).unwrap());)*
+macro_rules! define_selectors {
+    ($struct_name:ident, $($field:ident: $selector:literal),* $(,)?) => {
+        struct $struct_name {
+            $(pub $field: ::scraper::Selector,)*
+        }
+        impl $struct_name {
+            pub fn new() -> Self {
+                Self {
+                    $($field: ::scraper::Selector::parse($selector).unwrap(),)*
+                }
+            }
+        }
     };
 }

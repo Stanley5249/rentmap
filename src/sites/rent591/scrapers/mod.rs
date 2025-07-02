@@ -1,5 +1,5 @@
-pub mod items;
-pub mod lists;
+mod item;
+mod list;
 
-pub use items::scrape_rent_items;
-pub use lists::scrape_rent_lists;
+pub use item::{scrape_rent_item, scrape_rent_items};
+pub use list::scrape_rent_list;

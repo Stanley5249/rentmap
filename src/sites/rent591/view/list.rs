@@ -1,19 +1,25 @@
+use std::sync::LazyLock;
+
 use scraper::Html;
 use url::Url;
 
-use crate::selectors;
-use crate::sites::rent591::model::RentListItem;
+use super::error::Error;
+use crate::define_selectors;
+use crate::sites::rent591::model::RentItemSummary;
 
-selectors! {
-    PAGE_COUNT_SELECTOR: "ul.paging > li:last-child > a",
-    ITEM_COUNT_SELECTOR: ".list-sort .total strong",
-    ITEM_SELECTOR: ".item",
-    ITEM_INFO_LINK_SELECTOR: ".item-info-title a.link",
-    ITEM_INFO_PRICE_SELECTOR: ".item-info-price",
-    ITEM_INFO_TAG_SELECTOR: ".item-info-tag .tag",
-    ITEM_INFO_TXT_SELECTOR: ".item-info-txt",
-    IMAGE_SELECTOR: "ul.image-list img.common-img"
+define_selectors! {
+    ListSelectors,
+    page_count: "ul.paging > li:last-child > a",
+    item_count: ".list-sort .total strong",
+    item: ".item",
+    item_info_link: ".item-info-title a.link",
+    item_info_price: ".item-info-price",
+    item_info_tag: ".item-info-tag .tag",
+    item_info_txt: ".item-info-txt",
+    image: "ul.image-list img.common-img"
 }
+
+static LIST_SELECTORS: LazyLock<ListSelectors> = LazyLock::new(ListSelectors::new);
 
 pub struct ListView {
     pub document: Html,
@@ -25,8 +31,7 @@ impl ListView {
     }
 
     pub fn extract_page_count(&self) -> Option<u32> {
-        let selector = &*PAGE_COUNT_SELECTOR;
-
+        let selector = &LIST_SELECTORS.page_count;
         self.document
             .select(selector)
             .next()
@@ -34,8 +39,7 @@ impl ListView {
     }
 
     pub fn extract_item_count(&self) -> Option<u32> {
-        let selector = &*ITEM_COUNT_SELECTOR;
-
+        let selector = &LIST_SELECTORS.item_count;
         self.document
             .select(selector)
             .next()
@@ -46,8 +50,7 @@ impl ListView {
         &self,
         item: &scraper::ElementRef,
     ) -> (Option<Url>, Option<String>) {
-        let selector = &*ITEM_INFO_LINK_SELECTOR;
-
+        let selector = &LIST_SELECTORS.item_info_link;
         item.select(selector)
             .next()
             .map(|e| {
@@ -60,8 +63,7 @@ impl ListView {
     }
 
     fn extract_item_info_price(&self, item: &scraper::ElementRef) -> Option<String> {
-        let selector = &*ITEM_INFO_PRICE_SELECTOR;
-
+        let selector = &LIST_SELECTORS.item_info_price;
         item.select(selector).next().map(|e| {
             e.text()
                 .map(|t| t.trim())
@@ -72,16 +74,14 @@ impl ListView {
     }
 
     fn extract_item_info_tags(&self, item: &scraper::ElementRef) -> Vec<String> {
-        let selector = &*ITEM_INFO_TAG_SELECTOR;
-
+        let selector = &LIST_SELECTORS.item_info_tag;
         item.select(selector)
             .map(|e| e.text().collect::<String>().trim().to_string())
             .collect()
     }
 
     fn extract_item_info_txts(&self, item: &scraper::ElementRef) -> Vec<String> {
-        let selector = &*ITEM_INFO_TXT_SELECTOR;
-
+        let selector = &LIST_SELECTORS.item_info_txt;
         item.select(selector)
             .map(|e| {
                 e.text()
@@ -94,24 +94,22 @@ impl ListView {
     }
 
     fn extract_item_images(&self, item: &scraper::ElementRef) -> Vec<Url> {
-        let selector = &*IMAGE_SELECTOR;
-
+        let selector = &LIST_SELECTORS.image;
         item.select(selector)
             .filter_map(|img| img.value().attr("data-src"))
             .filter_map(|src| Url::parse(src).ok())
             .collect()
     }
 
-    pub fn extract_items(&self) -> Result<Vec<RentListItem>, super::error::Error> {
-        let selector = &*ITEM_SELECTOR;
-
+    pub fn extract_item_summaries(&self) -> Result<Vec<RentItemSummary>, Error> {
+        let selector = &LIST_SELECTORS.item;
         let items = self
             .document
             .select(selector)
             .filter_map(|item| {
-                let (link, title) = self.extract_item_link_and_title(&item);
-                link.map(|link| RentListItem {
-                    link,
+                let (url, title) = self.extract_item_link_and_title(&item);
+                url.map(|url| RentItemSummary {
+                    url,
                     title,
                     price: self.extract_item_info_price(&item),
                     tags: self.extract_item_info_tags(&item),
@@ -120,9 +118,8 @@ impl ListView {
                 })
             })
             .collect::<Vec<_>>();
-
         if items.is_empty() {
-            Err(super::error::Error::NoItems)
+            Err(Error::NoItems)
         } else {
             Ok(items)
         }

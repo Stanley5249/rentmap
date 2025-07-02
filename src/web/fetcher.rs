@@ -1,18 +1,16 @@
-use std::path::{Path, PathBuf};
-
 use miette::IntoDiagnostic;
 use scraper::Html;
-use tracing::warn;
 use url::Url;
 
-use crate::file::save_page;
+use crate::error::TraceReport;
+use crate::file::Workspace;
 use crate::web::backends::FetcherBackend;
 use crate::web::dom::clean_html;
 
 type Transform = Box<dyn Fn(&mut Html)>;
 
 pub struct Fetcher {
-    pub save: Option<PathBuf>,
+    pub workspace: Option<Workspace>,
     pub transforms: Vec<Transform>,
     backend: FetcherBackend,
 }
@@ -22,8 +20,8 @@ impl Fetcher {
         Self::default()
     }
 
-    pub fn with_save<P: AsRef<Path>>(mut self, output_dir: P) -> Self {
-        self.save = Some(output_dir.as_ref().to_path_buf());
+    pub fn with_workspace(mut self, workspace: Workspace) -> Self {
+        self.workspace = Some(workspace);
         self
     }
 
@@ -52,11 +50,12 @@ impl Fetcher {
             page.html = document.html();
         }
 
-        if let Some(output_dir) = &self.save {
-            if let Err(report) = save_page(&page, output_dir).into_diagnostic() {
-                warn!(%report);
-                eprintln!("{:?}", report);
-            }
+        if let Some(workspace) = &self.workspace {
+            workspace
+                .save_page(&page)
+                .into_diagnostic()
+                .trace_report()
+                .ok();
         }
 
         Ok(document)
@@ -66,7 +65,7 @@ impl Fetcher {
 impl Default for Fetcher {
     fn default() -> Self {
         Self {
-            save: None,
+            workspace: None,
             transforms: Vec::new(),
             backend: FetcherBackend::Spider,
         }

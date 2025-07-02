@@ -1,5 +1,7 @@
 // Shared command helpers and options
+pub mod error;
 pub mod fetch;
 pub mod geocoding;
-pub mod lists;
+pub mod item;
+pub mod list;
 pub mod ocr;
