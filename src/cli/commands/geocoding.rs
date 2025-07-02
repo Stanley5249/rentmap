@@ -40,7 +40,7 @@ fn merge_args(mut args: Args, config: Config) -> Args {
 fn format_args(args: &Args) -> String {
     let title = "Args:".bold().underline();
     let table = args.to_pretty_string();
-    format!("{}\n{}", title, table)
+    format!("{title}\n{table}")
 }
 
 fn format_geocoding_response(response: &GeocodingResponse) -> String {
@@ -51,10 +51,10 @@ fn format_geocoding_response(response: &GeocodingResponse) -> String {
     let summary = match response.results.len() {
         0 => "No locations found".red(), // unreachable
         1 => "Found 1 location".bright_green(),
-        n => format!("Found {} locations", n).bright_green(),
+        n => format!("Found {n} locations").bright_green(),
     };
 
-    format!("{}\n{}\n{}", title, table, summary)
+    format!("{title}\n{table}\n{summary}")
 }
 
 /// Run the CLI application

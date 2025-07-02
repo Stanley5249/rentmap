@@ -44,7 +44,7 @@ pub fn url_to_file_name(url: &Url) -> PathBuf {
 
             if let Some((last, rest)) = segments.split_last() {
                 file_name.extend(rest.iter().map(|s| sanitise(s)));
-                file_name.push(sanitise(&format!("{}_{}", last, query)));
+                file_name.push(sanitise(&format!("{last}_{query}")));
             } else {
                 file_name.push(sanitise(query));
             }

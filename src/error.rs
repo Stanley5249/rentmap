@@ -10,7 +10,7 @@ impl<T> TraceReport<T> for Result<T> {
     fn trace_report(self) -> Result<T> {
         self.inspect_err(|report| {
             error!(%report);
-            eprintln!("{:?}", report);
+            eprintln!("{report:?}");
         })
     }
 }

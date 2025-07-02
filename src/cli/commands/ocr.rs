@@ -42,7 +42,7 @@ fn merge_args(mut args: Args, config: Config) -> Args {
 fn format_args(args: &Args) -> String {
     let title = "Args:".bold().underline();
     let table = args.to_pretty_string();
-    format!("{}\n{}", title, table)
+    format!("{title}\n{table}")
 }
 
 fn format_ocr_result(detected_text: &OcrString) -> String {
@@ -51,7 +51,7 @@ fn format_ocr_result(detected_text: &OcrString) -> String {
     } else {
         let title = "Detected Text:".bold().underline();
         let table = detected_text.to_pretty_string();
-        format!("{}\n{}", title, table)
+        format!("{title}\n{table}")
     }
 }
 

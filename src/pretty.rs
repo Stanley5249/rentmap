@@ -19,7 +19,7 @@ impl ToPrettyString for Duration {
         if s < 1.0 {
             format!("{}ms", self.as_millis())
         } else {
-            format!("{:.1}s", s)
+            format!("{s:.1}s")
         }
     }
 }

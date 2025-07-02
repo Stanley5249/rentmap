@@ -5,6 +5,7 @@ use spider::features::chrome_common::RequestInterceptConfiguration;
 use spider::website::Website;
 use url::Url;
 
+use super::error::BackendError;
 use crate::web::page::Page;
 
 fn build_config() -> Configuration {
@@ -19,7 +20,7 @@ fn build_config() -> Configuration {
     let delay: Option<Duration> = Some(Duration::from_millis(500));
     let wait_for_delay = Some(WaitForDelay::new(delay));
 
-    let config = Configuration::new()
+    Configuration::new()
         .with_chrome_intercept(intercept_config, &None)
         .with_wait_for_idle_dom(wait_for_idle_dom)
         .with_wait_for_idle_network(wait_for_idle_network)
@@ -28,18 +29,16 @@ fn build_config() -> Configuration {
         .with_caching(true)
         .with_limit(1)
         .with_retry(1)
-        .build();
-
-    config
+        .build()
 }
 
-fn build_website(url: &Url) -> Result<Box<Website>, super::error::Backend> {
+fn build_website(url: &Url) -> Result<Box<Website>, BackendError> {
     let config = build_config();
 
     let website = Website::new(url.as_str())
         .with_config(config)
         .build()
-        .map_err(super::error::Backend::Spider)?;
+        .map_err(BackendError::spider)?;
 
     Ok(Box::new(website))
 }
