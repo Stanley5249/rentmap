@@ -1,33 +1,27 @@
 use miette::Result;
 use tracing::{debug, info, instrument, warn};
-use url::Url;
 
 use crate::error::TraceReport;
+use crate::file::TimedRecord;
 use crate::sites::rent591::model::{RentList, RentListPage};
+use crate::sites::rent591::url::ListUrl;
 use crate::sites::rent591::view::ListView;
 use crate::web::fetcher::Fetcher;
 
-fn build_page_url(base_url: &Url, page_number: u32) -> Url {
-    let mut page_url = base_url.clone();
-    page_url
-        .query_pairs_mut()
-        .append_pair("page", &page_number.to_string());
-    page_url
-}
-
+#[instrument(skip_all, fields(%url, %page))]
 async fn scrape_rent_list_page(
     fetcher: &Fetcher,
-    base_url: &Url,
+    url: &ListUrl,
     page: u32,
 ) -> Result<(ListView, RentListPage)> {
-    let url = build_page_url(base_url, page);
+    let url = url.with_page(page);
 
     let response = fetcher.try_fetch(&url).await?;
 
     let list_view: ListView = response.into();
     let rent_list_items = list_view.extract_item_summaries()?;
 
-    debug!(%url, item_count = rent_list_items.len());
+    debug!(item_count = rent_list_items.len());
 
     let rent_list = RentListPage {
         page,
@@ -37,8 +31,13 @@ async fn scrape_rent_list_page(
     Ok((list_view, rent_list))
 }
 
-#[instrument(skip_all, fields(%url))]
-pub async fn scrape_rent_list(fetcher: &Fetcher, url: Url, limit: Option<u32>) -> Result<RentList> {
+pub async fn scrape_rent_list(
+    fetcher: &Fetcher,
+    url: &ListUrl,
+    limit: Option<u32>,
+) -> Result<TimedRecord<RentList>> {
+    let url = url.without_page();
+
     // Scrape first page
     let (first_list_view, first_list) = scrape_rent_list_page(fetcher, &url, 1).await?;
 
@@ -93,9 +92,10 @@ pub async fn scrape_rent_list(fetcher: &Fetcher, url: Url, limit: Option<u32>) -
     }
 
     Ok(RentList {
-        url,
+        url: url.into(),
         page_count,
         item_count,
         pages: rent_list_pages,
-    })
+    }
+    .into())
 }

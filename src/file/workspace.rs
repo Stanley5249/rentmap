@@ -8,8 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::FileError;
 use super::ops::{load_json, make_directory, save_html, save_json};
-use super::url::url_to_file_name;
-use crate::file::exists_and_nonempty;
+use crate::file::{UrlExt, exists_and_nonempty};
 use crate::web::page::Page;
 
 type UpdateResult<T> = Result<T, T>;
@@ -106,8 +105,8 @@ impl Workspace {
     }
 
     pub fn save_page(&self, page: &Page) -> Result<(), FileError> {
-        let file_name = url_to_file_name(&page.url_final);
-        let path = self.html_file_for_write(file_name)?;
+        let path = page.url_final.to_path_buf();
+        let path = self.html_file_for_write(path)?;
         save_html(&page.html, path)
     }
 

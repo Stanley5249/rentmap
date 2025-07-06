@@ -8,10 +8,10 @@ use url::Url;
 use super::error::Error;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::error::TraceReport;
-use crate::file::{TimedRecord, TimedRecords, Workspace};
+use crate::file::{TimedRecord, TimedRecords, UrlExt, Workspace};
 use crate::sites::rent591::model::{RentItem, RentList};
 use crate::sites::rent591::scrapers::{scrape_rent_item, scrape_rent_items};
-use crate::sites::rent591::url::Rent591Url;
+use crate::sites::rent591::url::{ItemUrl, ListUrl, Rent591Url};
 use crate::sites::site::SiteUrl;
 use crate::web::fetcher::Fetcher;
 
@@ -36,7 +36,7 @@ pub struct Args {
 async fn handle_list(
     workspace: &Workspace,
     fetcher: &Fetcher,
-    url: &Url,
+    url: ListUrl,
     limit: Option<usize>,
 ) -> Result<()> {
     let list_records: TimedRecords<RentList> = workspace.load_records("rent591_lists.json")?;
@@ -75,13 +75,13 @@ async fn handle_list(
 }
 
 /// Handle Rent591 item URLs
-async fn handle_item(workspace: &Workspace, fetcher: &Fetcher, url: &Url) -> Result<()> {
+async fn handle_item(workspace: &Workspace, fetcher: &Fetcher, url: ItemUrl) -> Result<()> {
     let update_func = async |mut records: TimedRecords<RentItem>| {
         if records.iter().any(|item| item.data.url == *url) {
             return Err(records);
         }
 
-        match scrape_rent_item(fetcher, url).await.trace_report() {
+        match scrape_rent_item(fetcher, &url).await.trace_report() {
             Ok(record) => {
                 records.push(record);
                 Ok(records)
@@ -97,7 +97,9 @@ async fn handle_item(workspace: &Workspace, fetcher: &Fetcher, url: &Url) -> Res
     Ok(())
 }
 
-pub async fn run(args: Args) -> Result<()> {
+pub async fn run(mut args: Args) -> Result<()> {
+    args.url.normalize();
+
     debug!(?args);
 
     args.workspace.init()?;
@@ -107,10 +109,10 @@ pub async fn run(args: Args) -> Result<()> {
     match SiteUrl::try_from(args.url)? {
         SiteUrl::Rent591(path) => match path {
             Rent591Url::List(list_url) => {
-                handle_list(&args.workspace, &fetcher, &list_url, args.limit).await?;
+                handle_list(&args.workspace, &fetcher, list_url, args.limit).await?;
             }
             Rent591Url::Item(item_url) => {
-                handle_item(&args.workspace, &fetcher, &item_url).await?;
+                handle_item(&args.workspace, &fetcher, item_url).await?;
             }
         },
     };

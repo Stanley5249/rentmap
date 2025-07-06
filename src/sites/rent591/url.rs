@@ -4,6 +4,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 use url::Url;
 
+use crate::file::UrlExt;
 use crate::url_wrapper;
 
 #[derive(Debug, Error, Diagnostic)]
@@ -78,6 +79,45 @@ url_wrapper! {
     /// - `fitment`: Decoration level (`99,3,4`)
     /// - `notice`: Tenant restrictions (`all_sex,boy,girl,not_cover`)
     ListUrl
+}
+
+// Methods in ListUrl should always keep the URL normalized
+impl ListUrl {
+    pub fn page(&self) -> Option<u32> {
+        self.query_pairs()
+            .find(|(key, _)| key == "page")
+            .and_then(|(_, value)| value.parse().ok())
+    }
+
+    pub fn add_page(&mut self, page: u32) {
+        let mut pairs: Vec<(String, String)> = self.query_pairs_owned().collect();
+        pairs.push(("page".to_string(), page.to_string()));
+        pairs.sort();
+
+        self.query_pairs_mut().clear().extend_pairs(pairs);
+    }
+
+    pub fn del_page(&mut self) {
+        let pairs: Vec<(String, String)> = self
+            .query_pairs()
+            .filter(|(key, _)| key != "page")
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+
+        self.query_pairs_mut().clear().extend_pairs(pairs);
+    }
+
+    pub fn with_page(&self, page: u32) -> Self {
+        let mut url = self.clone();
+        url.add_page(page);
+        url
+    }
+
+    pub fn without_page(&self) -> Self {
+        let mut url = self.clone();
+        url.del_page();
+        url
+    }
 }
 
 url_wrapper! {
