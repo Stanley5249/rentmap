@@ -4,9 +4,12 @@ use tracing::debug;
 use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::file::{UrlExt, Workspace};
+use crate::error::TraceReport;
+use crate::file::{TimedRecords, UrlExt, Workspace};
+use crate::sites::rent591::model::RentList;
 use crate::sites::rent591::scrapers::scrape_rent_list;
 use crate::sites::rent591::url::ListUrl;
+use crate::web::fetcher::Fetcher;
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON
 #[derive(Debug, Parser)]
@@ -18,11 +21,43 @@ pub struct Args {
     #[arg(long, short)]
     pub limit: Option<u32>,
 
+    /// Whether to refresh the record even if it already exists
+    #[arg(long, short)]
+    pub refresh: bool,
+
     #[clap(flatten)]
     pub workspace: Workspace,
 
     #[clap(flatten)]
     pub fetcher: FetcherArgs,
+}
+
+async fn handle_list(args: Args, fetcher: &Fetcher) -> Result<()> {
+    let url = ListUrl::try_from(args.url)?;
+
+    let update_func = async |mut records: TimedRecords<RentList>| {
+        if !args.refresh && records.iter().any(|record| record.data.url == *url) {
+            debug!(%url, "find existing record");
+            return Err(records);
+        }
+
+        match scrape_rent_list(fetcher, &url, args.limit)
+            .await
+            .trace_report()
+        {
+            Ok(record) => {
+                records.push(record);
+                Ok(records)
+            }
+            Err(_) => Err(records),
+        }
+    };
+
+    args.workspace
+        .update_records_async("rent591_lists.json", update_func)
+        .await?;
+
+    Ok(())
 }
 
 pub async fn run(mut args: Args) -> Result<()> {
@@ -34,12 +69,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    let url = ListUrl::try_from(args.url)?;
-
-    let list_record = scrape_rent_list(&fetcher, &url, args.limit).await?;
-
-    args.workspace
-        .add_record(list_record, "rent591_lists.json")?;
+    handle_list(args, &fetcher).await?;
 
     Ok(())
 }
