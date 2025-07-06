@@ -23,7 +23,7 @@ pub struct Args {
 
     /// Maximum items to scrape
     #[arg(long, short)]
-    pub limit: Option<usize>,
+    pub limit: Option<u32>,
 
     #[clap(flatten)]
     pub workspace: Workspace,
@@ -37,7 +37,7 @@ async fn handle_list(
     workspace: &Workspace,
     fetcher: &Fetcher,
     url: ListUrl,
-    limit: Option<usize>,
+    limit: Option<u32>,
 ) -> Result<()> {
     let list_records: TimedRecords<RentList> = workspace.load_records("rent591_lists.json")?;
 
@@ -56,7 +56,7 @@ async fn handle_list(
             .filter(|url| !existing_urls.contains(url));
 
         let pending_urls: Vec<_> = match limit {
-            Some(limit) => pending_urls.take(limit).collect(),
+            Some(limit) => pending_urls.take(limit as usize).collect(),
             None => pending_urls.collect(),
         };
 

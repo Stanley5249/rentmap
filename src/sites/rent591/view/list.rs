@@ -35,7 +35,7 @@ impl ListView {
         self.document
             .select(selector)
             .next()
-            .and_then(|e| e.text().next().and_then(|s| s.parse::<u32>().ok()))
+            .and_then(|e| e.text().next().and_then(|s| s.parse().ok()))
     }
 
     pub fn extract_item_count(&self) -> Option<u32> {
