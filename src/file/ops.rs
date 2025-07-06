@@ -80,7 +80,7 @@ where
     Ok(())
 }
 
-pub fn exists_and_nonempty<P>(path: P) -> bool
+pub fn exists_and_non_empty<P>(path: P) -> bool
 where
     P: AsRef<Path>,
 {

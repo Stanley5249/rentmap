@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::FileError;
 use super::ops::{load_json, make_directory, save_html, save_json};
-use crate::file::{UrlExt, exists_and_nonempty};
+use crate::file::{UrlExt, exists_and_non_empty};
 use crate::web::page::Page;
 
 type UpdateResult<T> = Result<T, T>;
@@ -207,7 +207,7 @@ where
 {
     let path = path.as_ref();
 
-    let records = if exists_and_nonempty(path) {
+    let records = if exists_and_non_empty(path) {
         load_json(path)?
     } else {
         Default::default()
