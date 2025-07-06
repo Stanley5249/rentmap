@@ -9,11 +9,4 @@ pub enum Error {
         help("run `rentmap list` to fetch rental list")
     )]
     NoRentList,
-
-    #[error("expected a rental listing page URL as input")]
-    #[diagnostic(
-        code(rentmap::item::expect_list_url),
-        help("provide a valid rental listing page URL, e.g. https://rent.591.com.tw/list")
-    )]
-    ExpectListUrl,
 }

@@ -12,7 +12,6 @@ use crate::file::{TimedRecord, TimedRecords, UrlExt, Workspace};
 use crate::sites::rent591::model::{RentItem, RentList};
 use crate::sites::rent591::scrapers::{scrape_rent_item, scrape_rent_items};
 use crate::sites::rent591::url::{ItemUrl, ListUrl, Rent591Url};
-use crate::sites::site::SiteUrl;
 use crate::web::fetcher::Fetcher;
 
 /// Augment existing rental list with detailed item data
@@ -106,16 +105,14 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    match SiteUrl::try_from(args.url)? {
-        SiteUrl::Rent591(path) => match path {
-            Rent591Url::List(list_url) => {
-                handle_list(&args.workspace, &fetcher, list_url, args.limit).await?;
-            }
-            Rent591Url::Item(item_url) => {
-                handle_item(&args.workspace, &fetcher, item_url).await?;
-            }
-        },
-    };
+    match Rent591Url::try_from(args.url)? {
+        Rent591Url::List(list_url) => {
+            handle_list(&args.workspace, &fetcher, list_url, args.limit).await?;
+        }
+        Rent591Url::Item(item_url) => {
+            handle_item(&args.workspace, &fetcher, item_url).await?;
+        }
+    }
 
     Ok(())
 }

@@ -2,30 +2,25 @@ use miette::Diagnostic;
 use thiserror::Error;
 use url::Url;
 
+use super::rent591;
+
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
-    #[error("invalid URL domain")]
-    #[diagnostic(code(sites::site::invalid_domain))]
-    InvalidDomain,
-
-    #[error("site '{0}' is not supported")]
-    #[diagnostic(code(sites::site::invalid_site))]
-    InvalidSite(String),
+    #[error("unsupported or missing domain: {:?}", .0.domain())]
+    #[diagnostic(
+        code(sites::site::unsupported_domain),
+        help("supported domains: rent.591.com.tw")
+    )]
+    UnsupportedDomain(Url),
 
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Rent591(#[from] super::rent591::url::Error),
+    Rent591(#[from] rent591::url::Error),
 }
 
 pub enum SiteUrl {
     /// rent.591.com.tw
-    Rent591(super::rent591::url::Rent591Url),
-}
-
-impl From<super::rent591::url::Rent591Url> for SiteUrl {
-    fn from(url: super::rent591::url::Rent591Url) -> Self {
-        SiteUrl::Rent591(url)
-    }
+    Rent591(rent591::url::Rent591Url),
 }
 
 impl From<SiteUrl> for Url {
@@ -41,9 +36,12 @@ impl TryFrom<Url> for SiteUrl {
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match url.domain() {
-            Some("rent.591.com.tw") => Ok(super::rent591::url::Rent591Url::try_from(url)?.into()),
-            Some(domain) => Err(Error::InvalidSite(domain.into())),
-            None => Err(Error::InvalidDomain),
+            Some("rent.591.com.tw") => {
+                let domain = rent591::url::Rent591Domain(url);
+                let url = rent591::url::Rent591Url::try_from(domain)?;
+                Ok(Self::Rent591(url))
+            }
+            _ => Err(Self::Error::UnsupportedDomain(url)),
         }
     }
 }

@@ -1,14 +1,12 @@
 use clap::Parser;
-use miette::{Result, bail};
+use miette::Result;
 use tracing::debug;
 use url::Url;
 
-use super::error::Error;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::file::{UrlExt, Workspace};
 use crate::sites::rent591::scrapers::scrape_rent_list;
-use crate::sites::rent591::url::Rent591Url;
-use crate::sites::site::SiteUrl;
+use crate::sites::rent591::url::ListUrl;
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON
 #[derive(Debug, Parser)]
@@ -36,15 +34,12 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    match SiteUrl::try_from(args.url)? {
-        SiteUrl::Rent591(Rent591Url::List(url)) => {
-            let list_record = scrape_rent_list(&fetcher, &url, args.limit).await?;
+    let url = ListUrl::try_from(args.url)?;
 
-            args.workspace
-                .add_record(list_record, "rent591_lists.json")?;
-        }
-        _ => bail!(Error::ExpectListUrl),
-    };
+    let list_record = scrape_rent_list(&fetcher, &url, args.limit).await?;
+
+    args.workspace
+        .add_record(list_record, "rent591_lists.json")?;
 
     Ok(())
 }

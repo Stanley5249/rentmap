@@ -15,13 +15,7 @@ macro_rules! url_wrapper {
     ($(#[$attr:meta])* $name:ident) => {
         $(#[$attr])*
         #[derive(::std::clone::Clone)]
-        pub struct $name(::url::Url);
-
-        impl $name {
-            pub fn new(url: ::url::Url) -> Self {
-                Self(url)
-            }
-        }
+        pub struct $name(pub(crate) ::url::Url);
 
         impl ::std::convert::From<$name> for ::url::Url {
             fn from(wrapper: $name) -> ::url::Url {
