@@ -6,7 +6,7 @@ use url::Url;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::error::TraceReport;
 use crate::file::{TimedRecords, Workspace};
-use crate::sites::rent591::{ListUrl, RentList, scrape_rent_list};
+use crate::sites::rent591::{ListUrl, RentList, scrape_rent_list_and_pages};
 use crate::url::UrlExt;
 use crate::web::Fetcher;
 
@@ -48,7 +48,10 @@ async fn handle_list(
             return Err(records);
         }
 
-        match scrape_rent_list(fetcher, &url, limit).await.trace_report() {
+        match scrape_rent_list_and_pages(fetcher, &url, limit)
+            .await
+            .trace_report()
+        {
             Ok(record) => {
                 records.push(record);
                 Ok(records)

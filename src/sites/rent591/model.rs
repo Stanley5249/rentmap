@@ -6,8 +6,8 @@ use crate::sites::rent591::{ItemUrl, ListUrl};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentList {
     pub url: ListUrl,
-    pub page_count: u32,
-    pub item_count: u32,
+    pub page_count: Option<u32>,
+    pub item_count: Option<u32>,
     pub pages: Vec<Option<RentListPage>>,
 }
 
@@ -23,14 +23,13 @@ impl RentList {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentListPage {
-    pub page: u32,
-    pub items: Vec<RentItemSummary>,
+    pub items: Vec<Option<RentItemSummary>>,
 }
 
 impl RentListPage {
     /// Returns an iterator over the item URLs in this list
     pub fn item_urls(&self) -> impl Iterator<Item = &ItemUrl> {
-        self.items.iter().map(|item| &item.url)
+        self.items.iter().flatten().map(|item| &item.url)
     }
 }
 
