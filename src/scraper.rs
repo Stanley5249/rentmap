@@ -3,7 +3,21 @@ use std::sync::LazyLock;
 use scraper::node::Comment;
 use scraper::{Html, Node, Selector};
 
-use crate::define_selectors;
+#[macro_export]
+macro_rules! define_selectors {
+    ($struct_name:ident, $($field:ident: $selector:literal),* $(,)?) => {
+        struct $struct_name {
+            $(pub $field: ::scraper::Selector,)*
+        }
+        impl $struct_name {
+            pub fn new() -> Self {
+                Self {
+                    $($field: ::scraper::Selector::parse($selector).unwrap(),)*
+                }
+            }
+        }
+    };
+}
 
 define_selectors! {
     DomSelectors,

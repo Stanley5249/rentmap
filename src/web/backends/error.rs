@@ -15,6 +15,6 @@ pub enum BackendError {
 
 impl BackendError {
     pub fn spider(website: spider::website::Website) -> Self {
-        BackendError::Spider(Box::new(website))
+        Self::Spider(Box::new(website))
     }
 }

@@ -5,8 +5,9 @@ use spider::features::chrome_common::RequestInterceptConfiguration;
 use spider::website::Website;
 use url::Url;
 
-use super::error::BackendError;
-use crate::web::page::Page;
+use super::BackendError;
+use crate::web::Page;
+use crate::web::WebError;
 
 fn build_config() -> Configuration {
     let intercept_config = RequestInterceptConfiguration::new(true);
@@ -43,7 +44,7 @@ fn build_website(url: &Url) -> Result<Box<Website>, BackendError> {
     Ok(Box::new(website))
 }
 
-pub async fn fetch_page(url: &Url) -> Result<Page, crate::web::error::Error> {
+pub async fn fetch_page(url: &Url) -> Result<Page, WebError> {
     let mut website = build_website(url)?;
 
     Box::pin(website.scrape()).await;
@@ -51,6 +52,6 @@ pub async fn fetch_page(url: &Url) -> Result<Page, crate::web::error::Error> {
     Ok(website
         .get_pages()
         .and_then(|pages| pages.first())
-        .ok_or(crate::web::error::Error::NoPages)?
+        .ok_or(WebError::NoPages)?
         .into())
 }

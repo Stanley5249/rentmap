@@ -10,7 +10,7 @@ use super::FileError;
 use super::ops::{load_json, make_directory, save_html, save_json};
 use crate::file::exists_and_non_empty;
 use crate::url::UrlExt;
-use crate::web::page::Page;
+use crate::web::Page;
 
 type UpdateResult<T> = Result<T, T>;
 

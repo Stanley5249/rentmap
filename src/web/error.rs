@@ -1,10 +1,10 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
-use super::backends::error::BackendError;
+use super::backends::BackendError;
 
 #[derive(Debug, Error, Diagnostic)]
-pub enum Error {
+pub enum WebError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Backend(#[from] BackendError),

@@ -4,7 +4,7 @@ use tracing::{debug, info, instrument, warn};
 use crate::error::TraceReport;
 use crate::file::TimedRecord;
 use crate::sites::rent591::{ListUrl, ListView, RentList, RentListPage};
-use crate::web::fetcher::Fetcher;
+use crate::web::Fetcher;
 
 #[instrument(skip_all, fields(%url, %page))]
 async fn scrape_rent_list_page(

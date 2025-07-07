@@ -13,7 +13,7 @@ use crate::sites::rent591::{
     ItemUrl, ListUrl, Rent591Url, RentItem, RentList, scrape_rent_item, scrape_rent_items,
 };
 use crate::url::UrlExt;
-use crate::web::fetcher::Fetcher;
+use crate::web::Fetcher;
 
 /// Augment existing rental list with detailed item data
 #[derive(Debug, Parser)]

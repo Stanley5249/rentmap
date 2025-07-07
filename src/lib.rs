@@ -4,6 +4,7 @@ pub mod config;
 pub mod error;
 pub mod file;
 pub mod pretty;
+pub mod scraper;
 pub mod sites;
 pub mod url;
 pub mod web;

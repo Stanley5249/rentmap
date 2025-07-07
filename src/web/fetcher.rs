@@ -2,17 +2,18 @@ use miette::IntoDiagnostic;
 use scraper::Html;
 use url::Url;
 
+use super::backends::BackendType;
+use super::error::WebError;
 use crate::error::TraceReport;
 use crate::file::Workspace;
-use crate::web::backends::FetcherBackend;
-use crate::web::dom::clean_html;
+use crate::scraper::clean_html;
 
 type Transform = Box<dyn Fn(&mut Html)>;
 
 pub struct Fetcher {
     pub workspace: Option<Workspace>,
     pub transforms: Vec<Transform>,
-    backend: FetcherBackend,
+    backend: BackendType,
 }
 
 impl Fetcher {
@@ -38,7 +39,7 @@ impl Fetcher {
         self
     }
 
-    pub async fn try_fetch(&self, url: &Url) -> Result<Html, super::error::Error> {
+    pub async fn try_fetch(&self, url: &Url) -> Result<Html, WebError> {
         let mut page = self.backend.fetch_page(url).await?;
 
         let mut document = Html::parse_document(&page.html);
@@ -67,7 +68,7 @@ impl Default for Fetcher {
         Self {
             workspace: None,
             transforms: Vec::new(),
-            backend: FetcherBackend::Spider,
+            backend: BackendType::Spider,
         }
     }
 }
