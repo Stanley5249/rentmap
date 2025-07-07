@@ -5,8 +5,9 @@ use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::error::TraceReport;
-use crate::file::{TimedRecords, UrlExt, Workspace};
+use crate::file::{TimedRecords, Workspace};
 use crate::sites::rent591::{ListUrl, RentList, scrape_rent_list};
+use crate::url::UrlExt;
 use crate::web::fetcher::Fetcher;
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON

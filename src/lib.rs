@@ -5,4 +5,5 @@ pub mod error;
 pub mod file;
 pub mod pretty;
 pub mod sites;
+pub mod url;
 pub mod web;

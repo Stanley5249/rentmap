@@ -8,10 +8,11 @@ use url::Url;
 use super::error::Error;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::error::TraceReport;
-use crate::file::{TimedRecord, TimedRecords, UrlExt, Workspace};
+use crate::file::{TimedRecord, TimedRecords, Workspace};
 use crate::sites::rent591::{
     ItemUrl, ListUrl, Rent591Url, RentItem, RentList, scrape_rent_item, scrape_rent_items,
 };
+use crate::url::UrlExt;
 use crate::web::fetcher::Fetcher;
 
 /// Augment existing rental list with detailed item data

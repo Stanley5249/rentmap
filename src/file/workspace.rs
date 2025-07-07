@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use super::FileError;
 use super::ops::{load_json, make_directory, save_html, save_json};
-use crate::file::{UrlExt, exists_and_non_empty};
+use crate::file::exists_and_non_empty;
+use crate::url::UrlExt;
 use crate::web::page::Page;
 
 type UpdateResult<T> = Result<T, T>;

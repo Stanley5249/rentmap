@@ -3,6 +3,41 @@ use std::path::PathBuf;
 use sanitise_file_name::sanitise;
 use url::Url;
 
+#[macro_export]
+macro_rules! url_wrapper {
+    ($(#[$attr:meta])* $name:ident) => {
+        $(#[$attr])*
+        #[derive(::std::clone::Clone)]
+        pub struct $name(pub(crate) ::url::Url);
+
+        impl ::std::convert::From<$name> for ::url::Url {
+            fn from(wrapper: $name) -> ::url::Url {
+                wrapper.0
+            }
+        }
+
+        impl ::std::ops::Deref for $name {
+            type Target = ::url::Url;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl ::std::ops::DerefMut for $name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+    };
+}
+
 pub trait UrlExt {
     fn query_pairs_owned(&self) -> impl Iterator<Item = (String, String)>;
     fn sort_query_pairs(&mut self);

@@ -4,7 +4,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 use url::Url;
 
-use crate::file::UrlExt;
+use crate::url::UrlExt;
 use crate::url_wrapper;
 
 #[derive(Debug, Error, Diagnostic)]
