@@ -39,7 +39,11 @@ async fn handle_list(
     fetcher: &Fetcher,
 ) -> Result<()> {
     let update_func = async |mut records: TimedRecords<RentList>| {
-        if !refresh && records.iter().any(|record| record.data.url == *url) {
+        if !refresh
+            && records
+                .iter()
+                .any(|record| record.data.url.url() == url.url())
+        {
             debug!(%url, "find existing record");
             return Err(records);
         }

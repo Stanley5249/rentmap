@@ -29,6 +29,13 @@ pub enum UrlError {
         help("path must be a list page (/list)")
     )]
     ExpectList(Url),
+
+    #[error("expected a rent 591 item page {:?}", .0.path())]
+    #[diagnostic(
+        code(sites::rent591::url::expect_item),
+        help("path must be an item page (/<id>)")
+    )]
+    ExpectItem(Url),
 }
 
 url_wrapper! {
@@ -67,7 +74,7 @@ impl TryFrom<Rent591Domain> for Rent591Url {
     type Error = UrlError;
 
     fn try_from(url: Rent591Domain) -> Result<Self, Self::Error> {
-        let url = url.0;
+        let url: Url = url.into();
 
         let segments: Vec<_> = match url.path_segments() {
             Some(v) => v,
@@ -103,8 +110,8 @@ impl Deref for Rent591Url {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Rent591Url::List(url) => &url.0,
-            Rent591Url::Item(url) => &url.0,
+            Rent591Url::List(url) => url.url(),
+            Rent591Url::Item(url) => url.url(),
         }
     }
 }
@@ -175,7 +182,7 @@ impl TryFrom<Url> for ListUrl {
 
         match url {
             Rent591Url::List(list_url) => Ok(list_url),
-            Rent591Url::Item(item_url) => Err(UrlError::ExpectList(item_url.0)),
+            Rent591Url::Item(item_url) => Err(UrlError::ExpectList(item_url.into())),
         }
     }
 }
@@ -183,6 +190,18 @@ impl TryFrom<Url> for ListUrl {
 url_wrapper! {
     /// Wrapper for rental item URLs
     ItemUrl
+}
+
+impl TryFrom<Url> for ItemUrl {
+    type Error = UrlError;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        let url: Rent591Url = url.try_into()?;
+        match url {
+            Rent591Url::Item(item_url) => Ok(item_url),
+            Rent591Url::List(list_url) => Err(UrlError::ExpectItem(list_url.into())),
+        }
+    }
 }
 
 #[cfg(test)]

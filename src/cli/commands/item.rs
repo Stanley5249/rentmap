@@ -48,7 +48,7 @@ async fn handle_list(
 
     let list_record: TimedRecord<RentList> = list_records
         .into_iter()
-        .filter(|record| record.data.url == *url)
+        .filter(|record| record.data.url.url() == url.url())
         .next_back()
         .ok_or(Error::NoRentList)?;
 
@@ -56,13 +56,15 @@ async fn handle_list(
         let mut urls: Vec<_> = if refresh {
             list_record.data.item_urls().collect()
         } else {
-            let existing_urls: BTreeSet<_> =
-                item_records.iter().map(|item| &item.data.url).collect();
+            let existing_urls: BTreeSet<_> = item_records
+                .iter()
+                .map(|item| item.data.url.url())
+                .collect();
 
             list_record
                 .data
                 .item_urls()
-                .filter(|url| !existing_urls.contains(url))
+                .filter(|url| !existing_urls.contains(url.url()))
                 .collect()
         };
 
@@ -97,7 +99,7 @@ async fn handle_item(
     fetcher: &Fetcher,
 ) -> Result<()> {
     let update_func = async move |mut records: TimedRecords<RentItem>| {
-        if !refresh && records.iter().any(|item| item.data.url == *url) {
+        if !refresh && records.iter().any(|item| item.data.url.url() == url.url()) {
             debug!(%url, "find existing record");
             return Err(records);
         }

@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use crate::sites::rent591::{ItemUrl, ListUrl};
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentList {
-    pub url: Url,
+    pub url: ListUrl,
     pub page_count: u32,
     pub item_count: u32,
     pub pages: Vec<Option<RentListPage>>,
@@ -11,7 +13,7 @@ pub struct RentList {
 
 impl RentList {
     /// Returns an iterator over all item URLs in all pages
-    pub fn item_urls(&self) -> impl Iterator<Item = &Url> {
+    pub fn item_urls(&self) -> impl Iterator<Item = &ItemUrl> {
         self.pages
             .iter()
             .filter_map(|list| list.as_ref())
@@ -27,14 +29,14 @@ pub struct RentListPage {
 
 impl RentListPage {
     /// Returns an iterator over the item URLs in this list
-    pub fn item_urls(&self) -> impl Iterator<Item = &Url> {
+    pub fn item_urls(&self) -> impl Iterator<Item = &ItemUrl> {
         self.items.iter().map(|item| &item.url)
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentItemSummary {
-    pub url: Url,
+    pub url: ItemUrl,
     pub title: Option<String>,
     pub price: Option<String>,
     pub tags: Vec<String>,
@@ -44,7 +46,7 @@ pub struct RentItemSummary {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentItem {
-    pub url: Url,
+    pub url: ItemUrl,
     pub title: Option<String>,
     pub labels: Vec<String>,
     pub patterns: Vec<String>,

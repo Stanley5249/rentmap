@@ -5,7 +5,7 @@ use url::Url;
 
 use super::ViewError;
 use crate::define_selectors;
-use crate::sites::rent591::RentItemSummary;
+use crate::sites::rent591::{ItemUrl, RentItemSummary};
 
 define_selectors! {
     ListSelectors,
@@ -49,13 +49,16 @@ impl ListView {
     fn extract_item_link_and_title(
         &self,
         item: &scraper::ElementRef,
-    ) -> (Option<Url>, Option<String>) {
+    ) -> (Option<ItemUrl>, Option<String>) {
         let selector = &LIST_SELECTORS.item_info_link;
         item.select(selector)
             .next()
             .map(|e| {
                 let value = e.value();
-                let link = value.attr("href").and_then(|s| Url::parse(s).ok());
+                let link = value
+                    .attr("href")
+                    .and_then(|s| Url::parse(s).ok())
+                    .and_then(|url| ItemUrl::try_from(url).ok());
                 let title = value.attr("title").map(String::from);
                 (link, title)
             })

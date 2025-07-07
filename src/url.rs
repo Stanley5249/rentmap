@@ -7,8 +7,14 @@ use url::Url;
 macro_rules! url_wrapper {
     ($(#[$attr:meta])* $name:ident) => {
         $(#[$attr])*
-        #[derive(::std::clone::Clone)]
+        #[derive(::std::clone::Clone, ::std::fmt::Debug)]
         pub struct $name(pub(crate) ::url::Url);
+
+        impl $name {
+            pub fn url(&self) -> &::url::Url {
+                &self.0
+            }
+        }
 
         impl ::std::convert::From<$name> for ::url::Url {
             fn from(wrapper: $name) -> ::url::Url {
@@ -33,6 +39,25 @@ macro_rules! url_wrapper {
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 self.0.fmt(f)
+            }
+        }
+
+        impl ::serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: ::serde::Serializer,
+            {
+                self.0.serialize(serializer)
+            }
+        }
+
+        impl<'de> ::serde::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: ::serde::Deserializer<'de>,
+            {
+                let url = ::url::Url::deserialize(deserializer)?;
+                Ok(Self(url))
             }
         }
     };

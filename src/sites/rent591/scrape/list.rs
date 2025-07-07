@@ -90,7 +90,7 @@ pub async fn scrape_rent_list(
     }
 
     Ok(RentList {
-        url: url.into(),
+        url,
         page_count,
         item_count,
         pages: rent_list_pages,

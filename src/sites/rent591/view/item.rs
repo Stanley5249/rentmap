@@ -4,7 +4,7 @@ use url::Url;
 
 use super::ViewError;
 use crate::define_selectors;
-use crate::sites::rent591::RentItem;
+use crate::sites::rent591::{ItemUrl, RentItem};
 
 define_selectors! {
     ItemSelectors,
@@ -108,7 +108,7 @@ impl ItemView {
         extract_obfuscated_img_src_from(root, selector)
     }
 
-    pub fn extract_rent_item(&self, url: Url) -> Result<RentItem, ViewError> {
+    pub fn extract_rent_item(&self, url: ItemUrl) -> Result<RentItem, ViewError> {
         let selector = &ITEM_SELECTORS.root;
 
         let root = self
