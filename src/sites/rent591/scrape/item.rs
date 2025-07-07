@@ -4,8 +4,7 @@ use url::Url;
 
 use crate::error::TraceReport;
 use crate::file::{TimedRecord, TimedRecords};
-use crate::sites::rent591::model::RentItem;
-use crate::sites::rent591::view::ItemView;
+use crate::sites::rent591::{ItemView, RentItem};
 use crate::web::fetcher::Fetcher;
 
 #[instrument(skip_all, fields(%url))]

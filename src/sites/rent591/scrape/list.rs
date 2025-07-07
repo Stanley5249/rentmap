@@ -3,9 +3,7 @@ use tracing::{debug, info, instrument, warn};
 
 use crate::error::TraceReport;
 use crate::file::TimedRecord;
-use crate::sites::rent591::model::{RentList, RentListPage};
-use crate::sites::rent591::url::ListUrl;
-use crate::sites::rent591::view::ListView;
+use crate::sites::rent591::{ListUrl, ListView, RentList, RentListPage};
 use crate::web::fetcher::Fetcher;
 
 #[instrument(skip_all, fields(%url, %page))]

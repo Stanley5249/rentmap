@@ -15,12 +15,12 @@ pub enum Error {
 
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Rent591(#[from] rent591::url::Error),
+    Rent591(#[from] rent591::UrlError),
 }
 
 pub enum SiteUrl {
     /// rent.591.com.tw
-    Rent591(rent591::url::Rent591Url),
+    Rent591(rent591::Rent591Url),
 }
 
 impl From<SiteUrl> for Url {
@@ -37,8 +37,8 @@ impl TryFrom<Url> for SiteUrl {
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match url.domain() {
             Some("rent.591.com.tw") => {
-                let domain = rent591::url::Rent591Domain(url);
-                let url = rent591::url::Rent591Url::try_from(domain)?;
+                let domain = rent591::Rent591Domain(url);
+                let url = rent591::Rent591Url::try_from(domain)?;
                 Ok(Self::Rent591(url))
             }
             _ => Err(Self::Error::UnsupportedDomain(url)),

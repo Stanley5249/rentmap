@@ -3,9 +3,9 @@ use std::sync::LazyLock;
 use scraper::Html;
 use url::Url;
 
-use super::error::Error;
+use super::ViewError;
 use crate::define_selectors;
-use crate::sites::rent591::model::RentItemSummary;
+use crate::sites::rent591::RentItemSummary;
 
 define_selectors! {
     ListSelectors,
@@ -101,7 +101,7 @@ impl ListView {
             .collect()
     }
 
-    pub fn extract_item_summaries(&self) -> Result<Vec<RentItemSummary>, Error> {
+    pub fn extract_item_summaries(&self) -> Result<Vec<RentItemSummary>, ViewError> {
         let selector = &LIST_SELECTORS.item;
         let items = self
             .document
@@ -119,7 +119,7 @@ impl ListView {
             })
             .collect::<Vec<_>>();
         if items.is_empty() {
-            Err(Error::NoItems)
+            Err(ViewError::NoItemSummaries)
         } else {
             Ok(items)
         }

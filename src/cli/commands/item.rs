@@ -9,9 +9,9 @@ use super::error::Error;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
 use crate::error::TraceReport;
 use crate::file::{TimedRecord, TimedRecords, UrlExt, Workspace};
-use crate::sites::rent591::model::{RentItem, RentList};
-use crate::sites::rent591::scrapers::{scrape_rent_item, scrape_rent_items};
-use crate::sites::rent591::url::{ItemUrl, ListUrl, Rent591Url};
+use crate::sites::rent591::{
+    ItemUrl, ListUrl, Rent591Url, RentItem, RentList, scrape_rent_item, scrape_rent_items,
+};
 use crate::web::fetcher::Fetcher;
 
 /// Augment existing rental list with detailed item data

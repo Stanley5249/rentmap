@@ -8,7 +8,7 @@ use crate::file::UrlExt;
 use crate::url_wrapper;
 
 #[derive(Debug, Error, Diagnostic)]
-pub enum Error {
+pub enum UrlError {
     #[error("invalid rent 591 domain {:?}", .0.domain())]
     #[diagnostic(
         code(sites::rent591::url::invalid_domain),
@@ -36,7 +36,7 @@ url_wrapper! {
 }
 
 impl TryFrom<Url> for Rent591Domain {
-    type Error = Error;
+    type Error = UrlError;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match url.domain() {
@@ -55,7 +55,7 @@ pub enum Rent591Url {
 }
 
 impl TryFrom<Url> for Rent591Url {
-    type Error = Error;
+    type Error = UrlError;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         let domain_url: Rent591Domain = url.try_into()?;
@@ -64,7 +64,7 @@ impl TryFrom<Url> for Rent591Url {
 }
 
 impl TryFrom<Rent591Domain> for Rent591Url {
-    type Error = Error;
+    type Error = UrlError;
 
     fn try_from(url: Rent591Domain) -> Result<Self, Self::Error> {
         let url = url.0;
@@ -168,14 +168,14 @@ impl ListUrl {
 }
 
 impl TryFrom<Url> for ListUrl {
-    type Error = Error;
+    type Error = UrlError;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         let url: Rent591Url = url.try_into()?;
 
         match url {
             Rent591Url::List(list_url) => Ok(list_url),
-            Rent591Url::Item(item_url) => Err(Error::ExpectList(item_url.0)),
+            Rent591Url::Item(item_url) => Err(UrlError::ExpectList(item_url.0)),
         }
     }
 }
@@ -206,7 +206,7 @@ mod tests {
         let url = Url::parse("https://rent.591.com.tw/foo/bar").unwrap();
         assert!(matches!(
             Rent591Url::try_from(url),
-            Err(Error::InvalidPath(_))
+            Err(UrlError::InvalidPath(_))
         ));
     }
 

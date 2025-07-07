@@ -1,4 +1,9 @@
-pub mod model;
-pub mod scrapers;
-pub mod url;
-pub mod view;
+mod model;
+mod scrape;
+mod url;
+mod view;
+
+pub use model::{RentItem, RentItemSummary, RentList, RentListPage};
+pub use scrape::{scrape_rent_item, scrape_rent_items, scrape_rent_list};
+pub use url::{ItemUrl, ListUrl, Rent591Domain, Rent591Url, UrlError};
+pub use view::{ItemView, ListView, ViewError};
