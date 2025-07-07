@@ -1,4 +1,3 @@
-use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
@@ -45,12 +44,9 @@ pub trait SortByTimestamp {
     fn sort_by_timestamp(&mut self);
 }
 
-impl<T, U> SortByTimestamp for T
-where
-    T: DerefMut<Target = [TimedRecord<U>]>,
-{
+impl<U> SortByTimestamp for [TimedRecord<U>] {
     fn sort_by_timestamp(&mut self) {
-        self.deref_mut().sort_unstable_by_key(|r| r.timestamp);
+        self.sort_unstable_by_key(|r| r.timestamp);
     }
 }
 
