@@ -6,8 +6,7 @@ use spider::website::Website;
 use url::Url;
 
 use super::BackendError;
-use crate::web::Page;
-use crate::web::WebError;
+use crate::web::{Page, WebError};
 
 fn build_config() -> Configuration {
     let intercept_config = RequestInterceptConfiguration::new(true);

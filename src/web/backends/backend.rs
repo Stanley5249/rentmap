@@ -1,7 +1,6 @@
 use url::Url;
 
-use crate::web::Page;
-use crate::web::WebError;
+use crate::web::{Page, WebError};
 
 pub enum BackendType {
     Spider,
