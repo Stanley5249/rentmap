@@ -20,6 +20,10 @@ pub struct Args {
     /// Target URL for rent.591.com.tw search results or rental items
     pub url: Url,
 
+    /// Whether to refresh the record even if it already exists
+    #[arg(long, short)]
+    pub refresh: bool,
+
     /// Maximum items to scrape
     #[arg(long, short)]
     pub limit: Option<u32>,
@@ -33,10 +37,11 @@ pub struct Args {
 
 /// Handle Rent591 list URLs
 async fn handle_list(
+    url: ListUrl,
+    refresh: bool,
+    limit: Option<u32>,
     workspace: &Workspace,
     fetcher: &Fetcher,
-    url: ListUrl,
-    limit: Option<u32>,
 ) -> Result<()> {
     let list_records: TimedRecords<RentList> = workspace.load_records("rent591_lists.json")?;
 
@@ -46,24 +51,34 @@ async fn handle_list(
         .next_back()
         .ok_or(Error::NoRentList)?;
 
-    let update_func = async |mut records: TimedRecords<RentItem>| {
-        let existing_urls: BTreeSet<_> = records.iter().map(|item| &item.data.url).collect();
+    let update_func = async move |mut item_records: TimedRecords<RentItem>| {
+        let mut urls: Vec<_> = if refresh {
+            list_record.data.item_urls().collect()
+        } else {
+            let existing_urls: BTreeSet<_> =
+                item_records.iter().map(|item| &item.data.url).collect();
 
-        let pending_urls = list_record
-            .data
-            .item_urls()
-            .filter(|url| !existing_urls.contains(url));
-
-        let pending_urls: Vec<_> = match limit {
-            Some(limit) => pending_urls.take(limit as usize).collect(),
-            None => pending_urls.collect(),
+            list_record
+                .data
+                .item_urls()
+                .filter(|url| !existing_urls.contains(url))
+                .collect()
         };
 
-        let mut new_records = scrape_rent_items(fetcher, pending_urls).await;
+        if let Some(limit) = limit {
+            urls.truncate(limit as usize)
+        };
 
-        records.append(&mut new_records);
+        if urls.is_empty() {
+            debug!(%url, "all records already exist");
+            Err(item_records)
+        } else {
+            let mut new_item_records = scrape_rent_items(fetcher, urls).await;
 
-        Ok(records)
+            item_records.append(&mut new_item_records);
+
+            Ok(item_records)
+        }
     };
 
     workspace
@@ -74,12 +89,17 @@ async fn handle_list(
 }
 
 /// Handle Rent591 item URLs
-async fn handle_item(workspace: &Workspace, fetcher: &Fetcher, url: ItemUrl) -> Result<()> {
-    let update_func = async |mut records: TimedRecords<RentItem>| {
-        if records.iter().any(|item| item.data.url == *url) {
+async fn handle_item(
+    url: ItemUrl,
+    refresh: bool,
+    workspace: &Workspace,
+    fetcher: &Fetcher,
+) -> Result<()> {
+    let update_func = async move |mut records: TimedRecords<RentItem>| {
+        if !refresh && records.iter().any(|item| item.data.url == *url) {
+            debug!(%url, "find existing record");
             return Err(records);
         }
-
         match scrape_rent_item(fetcher, &url).await.trace_report() {
             Ok(record) => {
                 records.push(record);
@@ -107,10 +127,17 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     match Rent591Url::try_from(args.url)? {
         Rent591Url::List(list_url) => {
-            handle_list(&args.workspace, &fetcher, list_url, args.limit).await?;
+            handle_list(
+                list_url,
+                args.refresh,
+                args.limit,
+                &args.workspace,
+                &fetcher,
+            )
+            .await?;
         }
         Rent591Url::Item(item_url) => {
-            handle_item(&args.workspace, &fetcher, item_url).await?;
+            handle_item(item_url, args.refresh, &args.workspace, &fetcher).await?;
         }
     }
 

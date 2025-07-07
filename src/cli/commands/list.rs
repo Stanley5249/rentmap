@@ -17,13 +17,13 @@ pub struct Args {
     /// Target URL for rent.591.com.tw search results
     pub url: Url,
 
-    /// Maximum pages to scrape
-    #[arg(long, short)]
-    pub limit: Option<u32>,
-
     /// Whether to refresh the record even if it already exists
     #[arg(long, short)]
     pub refresh: bool,
+
+    /// Maximum pages to scrape
+    #[arg(long, short)]
+    pub limit: Option<u32>,
 
     #[clap(flatten)]
     pub workspace: Workspace,
@@ -32,19 +32,20 @@ pub struct Args {
     pub fetcher: FetcherArgs,
 }
 
-async fn handle_list(args: Args, fetcher: &Fetcher) -> Result<()> {
-    let url = ListUrl::try_from(args.url)?;
-
+async fn handle_list(
+    url: ListUrl,
+    refresh: bool,
+    limit: Option<u32>,
+    workspace: &Workspace,
+    fetcher: &Fetcher,
+) -> Result<()> {
     let update_func = async |mut records: TimedRecords<RentList>| {
-        if !args.refresh && records.iter().any(|record| record.data.url == *url) {
+        if !refresh && records.iter().any(|record| record.data.url == *url) {
             debug!(%url, "find existing record");
             return Err(records);
         }
 
-        match scrape_rent_list(fetcher, &url, args.limit)
-            .await
-            .trace_report()
-        {
+        match scrape_rent_list(fetcher, &url, limit).await.trace_report() {
             Ok(record) => {
                 records.push(record);
                 Ok(records)
@@ -53,7 +54,7 @@ async fn handle_list(args: Args, fetcher: &Fetcher) -> Result<()> {
         }
     };
 
-    args.workspace
+    workspace
         .update_records_async("rent591_lists.json", update_func)
         .await?;
 
@@ -69,7 +70,9 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
 
-    handle_list(args, &fetcher).await?;
+    let url = ListUrl::try_from(args.url)?;
+
+    handle_list(url, args.refresh, args.limit, &args.workspace, &fetcher).await?;
 
     Ok(())
 }
