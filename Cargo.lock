@@ -3142,6 +3142,7 @@ dependencies = [
  "colored",
  "comfy-table",
  "dirs",
+ "ego-tree",
  "google-cloud-auth",
  "google-cloud-vision-v1",
  "google_maps",

@@ -23,19 +23,19 @@ impl RentList {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentListPage {
-    pub items: Vec<Option<RentItemSummary>>,
+    pub items: Vec<RentItemSummary>,
 }
 
 impl RentListPage {
     /// Returns an iterator over the item URLs in this list
     pub fn item_urls(&self) -> impl Iterator<Item = &ItemUrl> {
-        self.items.iter().flatten().map(|item| &item.url)
+        self.items.iter().filter_map(|item| item.url.as_ref())
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RentItemSummary {
-    pub url: ItemUrl,
+    pub url: Option<ItemUrl>,
     pub title: Option<String>,
     pub price: Option<String>,
     pub tags: Vec<String>,
@@ -49,7 +49,7 @@ pub struct RentItem {
     pub title: Option<String>,
     pub labels: Vec<String>,
     pub patterns: Vec<String>,
-    pub services: String,
+    pub content: String,
     pub phone: Option<String>,
     pub album: Vec<Url>,
     pub area: Option<Url>,

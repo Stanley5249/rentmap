@@ -5,6 +5,7 @@ use url::Url;
 
 use super::ViewError;
 use crate::define_selectors;
+use crate::scraper::ElementExt;
 use crate::sites::rent591::{ItemUrl, ListUrl, RentItemSummary, RentList, RentListPage};
 
 define_selectors! {
@@ -31,87 +32,50 @@ impl ListView {
         Self { document }
     }
 
-    pub fn extract_page_count(&self) -> Option<u32> {
-        let selector = &LIST_SELECTORS.page_count;
-        self.document
-            .select(selector)
+    fn extract_url_from_item(&self, item: &ElementRef) -> Option<ItemUrl> {
+        let selector = &LIST_SELECTORS.item_info_link;
+        item.select_url(selector, "href")
+            .filter_map(|url| ItemUrl::try_from(url).ok())
             .next()
-            .and_then(|e| e.text().collect::<String>().trim().parse().ok())
     }
 
-    pub fn extract_item_count(&self) -> Option<u32> {
-        let selector = &LIST_SELECTORS.item_count;
-        self.document
-            .select(selector)
-            .next()
-            .and_then(|e| e.text().collect::<String>().trim().parse().ok())
-    }
-
-    fn extract_item_url(&self, item: &ElementRef) -> Option<ItemUrl> {
+    fn extract_title_from_item(&self, item: &ElementRef) -> Option<String> {
         let selector = &LIST_SELECTORS.item_info_link;
         item.select(selector)
+            .filter_map(|e| e.attr("title"))
             .next()
-            .and_then(|e| e.value().attr("href"))
-            .and_then(|s| Url::parse(s).ok())
-            .and_then(|url| ItemUrl::try_from(url).ok())
+            .map(|s| s.trim().to_string())
     }
 
-    fn extract_item_title(&self, item: &ElementRef) -> Option<String> {
-        let selector = &LIST_SELECTORS.item_info_link;
-        item.select(selector)
-            .next()
-            .and_then(|e| e.value().attr("title"))
-            .map(|s| s.to_string())
-    }
-
-    fn extract_item_info_price(&self, item: &ElementRef) -> Option<String> {
+    fn extract_info_price_from_item(&self, item: &ElementRef) -> Option<String> {
         let selector = &LIST_SELECTORS.item_info_price;
-        item.select(selector).next().map(|e| {
-            e.text()
-                .map(|t| t.trim())
-                .filter(|t| !t.is_empty())
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
+        item.select_text_join(selector, " ").next()
     }
 
-    fn extract_item_info_tags(&self, item: &ElementRef) -> Vec<String> {
+    fn extract_info_tags_from_item(&self, item: &ElementRef) -> Vec<String> {
         let selector = &LIST_SELECTORS.item_info_tag;
-        item.select(selector)
-            .map(|e| e.text().collect::<String>().trim().to_string())
-            .collect()
+        item.select_text_concat(selector).collect()
     }
 
-    fn extract_item_info_txts(&self, item: &ElementRef) -> Vec<String> {
+    fn extract_info_txts_from_item(&self, item: &ElementRef) -> Vec<String> {
         let selector = &LIST_SELECTORS.item_info_txt;
-        item.select(selector)
-            .map(|e| {
-                e.text()
-                    .map(|t| t.trim())
-                    .filter(|t| !t.is_empty())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            })
-            .collect()
+        item.select_text_join(selector, " ").collect()
     }
 
-    fn extract_item_images(&self, item: &ElementRef) -> Vec<Url> {
+    fn extract_images_from_item(&self, item: &ElementRef) -> Vec<Url> {
         let selector = &LIST_SELECTORS.image;
-        item.select(selector)
-            .filter_map(|img| img.value().attr("data-src"))
-            .filter_map(|src| Url::parse(src).ok())
-            .collect()
+        item.select_url(selector, "data-src").collect()
     }
 
-    fn extract_item_summary(&self, item: &ElementRef) -> Option<RentItemSummary> {
-        self.extract_item_url(item).map(|url| RentItemSummary {
-            url,
-            title: self.extract_item_title(item),
-            price: self.extract_item_info_price(item),
-            tags: self.extract_item_info_tags(item),
-            txts: self.extract_item_info_txts(item),
-            images: self.extract_item_images(item),
-        })
+    fn extract_summary_from_item(&self, item: &ElementRef) -> RentItemSummary {
+        RentItemSummary {
+            url: self.extract_url_from_item(item),
+            title: self.extract_title_from_item(item),
+            price: self.extract_info_price_from_item(item),
+            tags: self.extract_info_tags_from_item(item),
+            txts: self.extract_info_txts_from_item(item),
+            images: self.extract_images_from_item(item),
+        }
     }
 
     fn select_root(&self) -> Result<ElementRef<'_>, ViewError> {
@@ -122,13 +86,23 @@ impl ListView {
             .ok_or(ViewError::NoList)
     }
 
-    fn extract_list_page_from_root(&self, root: &ElementRef) -> Result<RentListPage, ViewError> {
+    fn extract_page_count_from_root(&self, root: &ElementRef) -> Option<u32> {
+        let selector = &LIST_SELECTORS.page_count;
+        root.select_from_str(selector).next()
+    }
+
+    fn extract_item_count_from_root(&self, root: &ElementRef) -> Option<u32> {
+        let selector = &LIST_SELECTORS.item_count;
+        root.select_from_str(selector).next()
+    }
+
+    fn extract_page_from_root(&self, root: &ElementRef) -> Result<RentListPage, ViewError> {
         let item_selector = &LIST_SELECTORS.item;
 
-        let items = root
+        let items: Vec<_> = root
             .select(item_selector)
-            .map(|item| self.extract_item_summary(&item))
-            .collect::<Vec<_>>();
+            .map(|item| self.extract_summary_from_item(&item))
+            .collect();
 
         if items.is_empty() {
             Err(ViewError::NoItemSummaries)
@@ -137,25 +111,18 @@ impl ListView {
         }
     }
 
-    pub fn extract_list_page(&self) -> Result<RentListPage, ViewError> {
+    pub fn extract_rent_list_page(&self) -> Result<RentListPage, ViewError> {
         let root = self.select_root()?;
-        self.extract_list_page_from_root(&root)
+        self.extract_page_from_root(&root)
     }
 
-    pub fn extract_list(&self, url: ListUrl) -> Result<RentList, ViewError> {
+    pub fn extract_rent_list(&self, url: ListUrl) -> Result<RentList, ViewError> {
         let root = self.select_root()?;
-        self.extract_list_page_from_root(&root)
-            .map(|page| RentList {
-                url,
-                item_count: self.extract_item_count(),
-                page_count: self.extract_page_count(),
-                pages: vec![Some(page)],
-            })
-    }
-}
-
-impl From<Html> for ListView {
-    fn from(document: Html) -> Self {
-        Self::new(document)
+        self.extract_page_from_root(&root).map(|page| RentList {
+            url,
+            item_count: self.extract_item_count_from_root(&root),
+            page_count: self.extract_page_count_from_root(&root),
+            pages: vec![Some(page)],
+        })
     }
 }

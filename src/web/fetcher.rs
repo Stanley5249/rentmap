@@ -6,7 +6,7 @@ use super::backends::BackendType;
 use super::error::WebError;
 use crate::error::TraceReport;
 use crate::file::Workspace;
-use crate::scraper::clean_html;
+use crate::scraper::HtmlExt;
 
 type Transform = Box<dyn Fn(&mut Html)>;
 
@@ -27,7 +27,7 @@ impl Fetcher {
     }
 
     pub fn with_clean(mut self) -> Self {
-        self.transforms.push(Box::new(clean_html));
+        self.transforms.push(Box::new(HtmlExt::hide_scripts));
         self
     }
 

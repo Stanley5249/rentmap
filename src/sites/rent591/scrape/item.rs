@@ -9,7 +9,7 @@ use crate::web::Fetcher;
 #[instrument(skip_all, fields(%url))]
 pub async fn scrape_rent_item(fetcher: &Fetcher, url: &ItemUrl) -> Result<TimedRecord<RentItem>> {
     let document = fetcher.try_fetch(url).await?;
-    let item_view: ItemView = document.into();
+    let item_view = ItemView::new(document);
     let rent_item = item_view.extract_rent_item(url.clone())?;
 
     info!("success");

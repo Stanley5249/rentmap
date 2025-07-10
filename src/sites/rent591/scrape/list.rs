@@ -18,7 +18,7 @@ async fn scrape_rent_list_page(
 
     let list_view = ListView::new(response);
 
-    let list_page = list_view.extract_list_page()?;
+    let list_page = list_view.extract_rent_list_page()?;
 
     debug!(item_count = list_page.items.len());
 
@@ -33,7 +33,7 @@ async fn scrape_rent_list(fetcher: &Fetcher, url: &ListUrl) -> Result<RentList> 
 
     let list_view = ListView::new(response);
 
-    let rent_list = list_view.extract_list(url)?;
+    let rent_list = list_view.extract_rent_list(url)?;
 
     if let Some(page_count) = rent_list.page_count {
         debug!(page_count);
