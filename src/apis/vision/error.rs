@@ -5,6 +5,13 @@ use thiserror::Error;
 pub enum Error {
     #[error(transparent)]
     #[diagnostic(
+        code(apis::vision::client_builder_error),
+        help("ensure the Google Cloud Vision API client is configured correctly")
+    )]
+    Builder(#[from] google_cloud_gax::client_builder::Error),
+
+    #[error(transparent)]
+    #[diagnostic(
         code(apis::vision::google_cloud_vision_v1_error),
         help("check your Google Cloud Vision API key is valid and has the necessary permissions")
     )]
