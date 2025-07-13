@@ -1,38 +1,40 @@
 use miette::Result;
 use tracing::{info, instrument, warn};
+use url::Url;
 
 use crate::error::TraceReport;
-use crate::file::{TimedRecord, TimedRecords};
-use crate::sites::rent591::{ItemUrl, ItemView, RentItem};
+use crate::sites::rent591::{ItemView, RentItem};
 use crate::web::Fetcher;
 
 #[instrument(skip_all, fields(%url))]
-pub async fn scrape_rent_item(fetcher: &Fetcher, url: &ItemUrl) -> Result<TimedRecord<RentItem>> {
+pub async fn scrape_item(fetcher: &Fetcher, url: &Url) -> Result<RentItem> {
     let document = fetcher.try_fetch(url).await?;
     let item_view = ItemView::new(document);
-    let rent_item = item_view.extract_rent_item(url.clone())?;
+    let rent_item = item_view.extract_item(url.clone())?;
 
-    info!("success");
+    info!("scrape item");
 
-    Ok(rent_item.into())
+    Ok(rent_item)
 }
 
-pub async fn scrape_rent_items<'a, I>(fetcher: &Fetcher, urls: I) -> TimedRecords<RentItem>
+pub async fn scrape_items<I, T>(fetcher: &Fetcher, urls: I) -> Vec<RentItem>
 where
-    I: IntoIterator<Item = &'a ItemUrl>,
+    I: IntoIterator<Item = T>,
+    T: AsRef<Url>,
 {
-    let urls = urls.into_iter();
-    let mut results = TimedRecords::with_capacity(urls.size_hint().0);
+    let iter = urls.into_iter();
+    let mut results = Vec::with_capacity(iter.size_hint().0);
 
     let mut err = 0;
 
-    for url in urls {
-        match scrape_rent_item(fetcher, url).await.trace_report() {
+    for url in iter {
+        match scrape_item(fetcher, url.as_ref()).await {
             Ok(item) => {
                 results.push(item);
             }
-            Err(_) => {
+            Err(report) => {
                 err += 1;
+                report.trace_report();
             }
         }
     }
@@ -40,8 +42,8 @@ where
     let ok = results.len();
 
     match err {
-        0 => info!(ok, "all rent items scraped successfully"),
-        err => warn!(ok, err, "some rent items failed to scrape"),
+        0 => info!(ok, "scrape all items"),
+        err => warn!(ok, err, "scrape items with errors"),
     }
 
     results

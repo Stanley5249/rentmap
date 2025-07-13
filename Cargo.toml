@@ -57,6 +57,11 @@ features = [
 ]
 version = "=2.37.129"
 
+[dependencies.sqlx]
+default-features = false
+features = ["chrono", "derive", "json", "migrate", "runtime-tokio", "sqlite"]
+version = "0.8.6"
+
 [dependencies.tokio]
 default-features = false
 features = ["macros", "rt"]

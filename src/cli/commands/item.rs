@@ -1,17 +1,12 @@
-use std::collections::BTreeSet;
-
 use clap::Parser;
 use miette::Result;
-use tracing::debug;
+use tracing::{debug, info, warn};
 use url::Url;
 
 use super::error::Error;
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::error::TraceReport;
-use crate::file::{TimedRecord, TimedRecords, Workspace};
-use crate::sites::rent591::{
-    ItemUrl, ListUrl, Rent591Url, RentItem, RentList, scrape_rent_item, scrape_rent_items,
-};
+use crate::file::{Workspace, WorkspaceArgs};
+use crate::sites::rent591::{Rent591Url, scrape_item, scrape_items};
 use crate::url::UrlExt;
 use crate::web::Fetcher;
 
@@ -30,7 +25,7 @@ pub struct Args {
     pub limit: Option<u32>,
 
     #[clap(flatten)]
-    pub workspace: Workspace,
+    pub workspace: WorkspaceArgs,
 
     #[clap(flatten)]
     pub fetcher: FetcherArgs,
@@ -38,83 +33,45 @@ pub struct Args {
 
 /// Handle Rent591 list URLs
 async fn handle_list(
-    url: ListUrl,
+    url: Url,
     refresh: bool,
     limit: Option<u32>,
     workspace: &Workspace,
     fetcher: &Fetcher,
 ) -> Result<()> {
-    let list_records: TimedRecords<RentList> = workspace.load_records("rent591_lists.json")?;
+    miette::ensure!(workspace.list_exists(&url).await?, Error::NoRentList);
 
-    let list_record: TimedRecord<RentList> = list_records
-        .into_iter()
-        .filter(|record| record.data.url.url() == url.url())
-        .next_back()
-        .ok_or(Error::NoRentList)?;
-
-    let update_func = async move |mut item_records: TimedRecords<RentItem>| {
-        let mut urls: Vec<_> = if refresh {
-            list_record.data.item_urls().collect()
-        } else {
-            let existing_urls: BTreeSet<_> = item_records
-                .iter()
-                .map(|item| item.data.url.url())
-                .collect();
-
-            list_record
-                .data
-                .item_urls()
-                .filter(|url| !existing_urls.contains(url.url()))
-                .collect()
-        };
-
-        if let Some(limit) = limit {
-            urls.truncate(limit as usize)
-        };
-
-        if urls.is_empty() {
-            debug!(%url, "all records already exist");
-            Err(item_records)
-        } else {
-            let mut new_item_records = scrape_rent_items(fetcher, urls).await;
-
-            item_records.append(&mut new_item_records);
-
-            Ok(item_records)
-        }
-    };
-
-    workspace
-        .update_records_async("rent591_items.json", update_func)
+    let urls = workspace
+        .select_item_urls_with(&url, refresh, limit)
         .await?;
+
+    match urls.len() {
+        0 => warn!("no items found"),
+        n => {
+            info!(count = n, "find items");
+            let items = scrape_items(fetcher, urls).await;
+            workspace.insert_items(&items).await?;
+        }
+    }
 
     Ok(())
 }
 
 /// Handle Rent591 item URLs
 async fn handle_item(
-    url: ItemUrl,
+    url: Url,
     refresh: bool,
     workspace: &Workspace,
     fetcher: &Fetcher,
 ) -> Result<()> {
-    let update_func = async move |mut records: TimedRecords<RentItem>| {
-        if !refresh && records.iter().any(|item| item.data.url.url() == url.url()) {
-            debug!(%url, "find existing record");
-            return Err(records);
-        }
-        match scrape_rent_item(fetcher, &url).await.trace_report() {
-            Ok(record) => {
-                records.push(record);
-                Ok(records)
-            }
-            Err(_) => Err(records),
-        }
-    };
+    if !refresh && workspace.item_exists(&url).await? {
+        info!("skip existing item");
+        return Ok(());
+    }
 
-    workspace
-        .update_records_async("rent591_items.json", update_func)
-        .await?;
+    let item = scrape_item(fetcher, &url).await?;
+
+    workspace.insert_items(&[item]).await?;
 
     Ok(())
 }
@@ -124,23 +81,16 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     debug!(?args);
 
-    args.workspace.init()?;
+    let workspace = args.workspace.build().await?;
 
-    let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
+    let fetcher = setup_fetcher(&args.fetcher, workspace.clone());
 
     match Rent591Url::try_from(args.url)? {
-        Rent591Url::List(list_url) => {
-            handle_list(
-                list_url,
-                args.refresh,
-                args.limit,
-                &args.workspace,
-                &fetcher,
-            )
-            .await?;
+        Rent591Url::List(url) => {
+            handle_list(url, args.refresh, args.limit, &workspace, &fetcher).await?;
         }
-        Rent591Url::Item(item_url) => {
-            handle_item(item_url, args.refresh, &args.workspace, &fetcher).await?;
+        Rent591Url::Item(url) => {
+            handle_item(url, args.refresh, &workspace, &fetcher).await?;
         }
     }
 

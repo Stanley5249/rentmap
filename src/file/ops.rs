@@ -18,7 +18,7 @@ where
         fs::create_dir_all(path).map_err(|source| PathError::new(path, source))?;
         info!(path = %path.display(), "make directory");
     }
-    debug!(path = %path.display(), "directory already exists");
+    debug!(path = %path.display(), "directory exists");
     Ok(())
 }
 

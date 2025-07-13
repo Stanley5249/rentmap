@@ -6,7 +6,7 @@ use tracing::debug;
 use url::Url;
 
 use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::file::Workspace;
+use crate::file::WorkspaceArgs;
 
 /// Download and clean HTML pages
 #[derive(Debug, Parser)]
@@ -15,7 +15,7 @@ pub struct Args {
     pub url: Url,
 
     #[clap(flatten)]
-    pub workspace: Workspace,
+    pub workspace: WorkspaceArgs,
 
     #[command(flatten)]
     pub fetcher: FetcherArgs,
@@ -24,9 +24,9 @@ pub struct Args {
 pub async fn run(args: Args) -> Result<()> {
     debug!(?args);
 
-    args.workspace.init()?;
+    let workspace = args.workspace.build().await?;
 
-    let fetcher = setup_fetcher(&args.fetcher, args.workspace);
+    let fetcher = setup_fetcher(&args.fetcher, workspace);
 
     let _ = fetcher.try_fetch(&args.url).await?;
 

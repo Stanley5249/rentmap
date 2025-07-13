@@ -3,6 +3,7 @@ use thiserror::Error;
 use url::Url;
 
 use super::rent591;
+use crate::sites::rent591::Rent591Url;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
@@ -20,7 +21,7 @@ pub enum Error {
 
 pub enum SiteUrl {
     /// rent.591.com.tw
-    Rent591(rent591::Rent591Url),
+    Rent591(Rent591Url),
 }
 
 impl From<SiteUrl> for Url {
@@ -36,11 +37,7 @@ impl TryFrom<Url> for SiteUrl {
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
         match url.domain() {
-            Some("rent.591.com.tw") => {
-                let domain = rent591::Rent591Domain(url);
-                let url = rent591::Rent591Url::try_from(domain)?;
-                Ok(Self::Rent591(url))
-            }
+            Some("rent.591.com.tw") => Ok(Self::Rent591(Rent591Url::try_from_matched_domain(url)?)),
             _ => Err(Self::Error::UnsupportedDomain(url)),
         }
     }

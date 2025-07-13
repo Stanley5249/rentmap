@@ -1,13 +1,20 @@
-use miette::Result;
+use miette::Report;
 use tracing::error;
 
-pub trait TraceReport<T> {
-    fn trace_report(self) -> Result<T>;
+pub trait TraceReport {
+    fn trace_report(self) -> Self;
 }
 
-impl<T> TraceReport<T> for Result<T> {
-    #[inline(always)]
-    fn trace_report(self) -> Result<T> {
+impl TraceReport for Report {
+    fn trace_report(self) -> Self {
+        error!(report = %self);
+        eprintln!("{self:?}");
+        self
+    }
+}
+
+impl<T> TraceReport for Result<T, Report> {
+    fn trace_report(self) -> Self {
         self.inspect_err(|report| {
             error!(%report);
             eprintln!("{report:?}");

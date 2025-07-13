@@ -4,9 +4,6 @@ use miette::Diagnostic;
 use thiserror::Error;
 use url::Url;
 
-use crate::url::UrlExt;
-use crate::url_wrapper;
-
 #[derive(Debug, Error, Diagnostic)]
 pub enum UrlError {
     #[error("invalid rent 591 domain {:?}", .0.domain())]
@@ -38,86 +35,20 @@ pub enum UrlError {
     ExpectItem(Url),
 }
 
-url_wrapper! {
-    Rent591Domain
-}
-
-impl TryFrom<Url> for Rent591Domain {
-    type Error = UrlError;
-
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
-        match url.domain() {
-            Some("rent.591.com.tw") => Ok(Self(url)),
-            _ => Err(Self::Error::InvalidDomain(url)),
+impl From<UrlError> for Url {
+    fn from(err: UrlError) -> Self {
+        match err {
+            UrlError::InvalidDomain(url)
+            | UrlError::InvalidPath(url)
+            | UrlError::ExpectList(url)
+            | UrlError::ExpectItem(url) => url,
         }
     }
 }
 
 /// URL path type for rent.591.com.tw
 pub enum Rent591Url {
-    /// List page: `/list` with optional query parameters
-    List(ListUrl),
-    /// Item page: `/<id>` where id is numeric
-    Item(ItemUrl),
-}
-
-impl TryFrom<Url> for Rent591Url {
-    type Error = UrlError;
-
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
-        let domain_url: Rent591Domain = url.try_into()?;
-        domain_url.try_into()
-    }
-}
-
-impl TryFrom<Rent591Domain> for Rent591Url {
-    type Error = UrlError;
-
-    fn try_from(url: Rent591Domain) -> Result<Self, Self::Error> {
-        let url: Url = url.into();
-
-        let segments: Vec<_> = match url.path_segments() {
-            Some(v) => v,
-            None => return Err(Self::Error::InvalidPath(url)),
-        }
-        .collect();
-
-        match segments.as_slice() {
-            ["" | "list"] => Ok(Self::List(ListUrl(url))),
-
-            [id] if is_ascii_digits(id) => Ok(Self::Item(ItemUrl(url))),
-
-            _ => Err(Self::Error::InvalidPath(url)),
-        }
-    }
-}
-
-fn is_ascii_digits(s: &str) -> bool {
-    !s.is_empty() && s.chars().all(|c| c.is_ascii_digit())
-}
-
-impl From<Rent591Url> for Url {
-    fn from(path_type: Rent591Url) -> Url {
-        match path_type {
-            Rent591Url::List(url) => url.0,
-            Rent591Url::Item(url) => url.0,
-        }
-    }
-}
-
-impl Deref for Rent591Url {
-    type Target = Url;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Rent591Url::List(url) => url.url(),
-            Rent591Url::Item(url) => url.url(),
-        }
-    }
-}
-
-url_wrapper! {
-    /// Wrapper for rental listing URLs with query parameter support
+    /// Rental listing URLs with query parameter support
     ///
     /// Common query parameters:
     /// - `region`: Location ID (e.g., `15` for specific district)
@@ -132,26 +63,96 @@ url_wrapper! {
     /// - `option`: Equipment (comma-separated: `cold,washer,icebox,hotwater,naturalgas,broadband,bed`)
     /// - `fitment`: Decoration level (`99,3,4`)
     /// - `notice`: Tenant restrictions (`all_sex,boy,girl,not_cover`)
-    ListUrl
+    List(Url),
+
+    /// rental item URLs Item page: `/<id>` where id is numeric
+    Item(Url),
 }
 
-// Methods in ListUrl should always keep the URL normalized
-impl ListUrl {
-    pub fn page(&self) -> Option<u32> {
+impl From<Rent591Url> for Url {
+    fn from(path_type: Rent591Url) -> Url {
+        match path_type {
+            Rent591Url::List(url) => url,
+            Rent591Url::Item(url) => url,
+        }
+    }
+}
+
+impl Deref for Rent591Url {
+    type Target = Url;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Rent591Url::List(url) => url,
+            Rent591Url::Item(url) => url,
+        }
+    }
+}
+
+impl TryFrom<Url> for Rent591Url {
+    type Error = UrlError;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        match url.domain() {
+            Some("rent.591.com.tw") => Rent591Url::try_from_matched_domain(url),
+            _ => Err(UrlError::InvalidDomain(url)),
+        }
+    }
+}
+
+impl Rent591Url {
+    pub(in crate::sites) fn try_from_matched_domain(url: Url) -> Result<Self, UrlError> {
+        let segments: Vec<_> = match url.path_segments() {
+            Some(v) => v,
+            None => return Err(UrlError::InvalidPath(url)),
+        }
+        .collect();
+
+        match segments.as_slice() {
+            ["" | "list"] => Ok(Self::List(url)),
+
+            [id] if is_ascii_digits(id) => Ok(Self::Item(url)),
+
+            _ => Err(UrlError::InvalidPath(url)),
+        }
+    }
+}
+
+fn is_ascii_digits(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_ascii_digit())
+}
+
+pub trait ListUrlExt {
+    fn page(&self) -> Option<u32>;
+    fn add_page(&mut self, page: u32);
+    fn del_page(&mut self);
+    fn with_page(&self, page: u32) -> Self
+    where
+        Self: Sized;
+    fn without_page(&self) -> Self
+    where
+        Self: Sized;
+}
+
+impl ListUrlExt for Url {
+    fn page(&self) -> Option<u32> {
         self.query_pairs()
             .find(|(key, _)| key == "page")
             .and_then(|(_, value)| value.parse().ok())
     }
 
-    pub fn add_page(&mut self, page: u32) {
-        let mut pairs: Vec<(String, String)> = self.query_pairs_owned().collect();
+    fn add_page(&mut self, page: u32) {
+        let mut pairs: Vec<(String, String)> = self
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+        pairs.retain(|(k, _)| k != "page");
         pairs.push(("page".to_string(), page.to_string()));
         pairs.sort();
-
         self.query_pairs_mut().clear().extend_pairs(pairs);
     }
 
-    pub fn del_page(&mut self) {
+    fn del_page(&mut self) {
         let pairs: Vec<(String, String)> = self
             .query_pairs()
             .filter(|(key, _)| key != "page")
@@ -161,46 +162,16 @@ impl ListUrl {
         self.query_pairs_mut().clear().extend_pairs(pairs);
     }
 
-    pub fn with_page(&self, page: u32) -> Self {
+    fn with_page(&self, page: u32) -> Self {
         let mut url = self.clone();
         url.add_page(page);
         url
     }
 
-    pub fn without_page(&self) -> Self {
+    fn without_page(&self) -> Self {
         let mut url = self.clone();
         url.del_page();
         url
-    }
-}
-
-impl TryFrom<Url> for ListUrl {
-    type Error = UrlError;
-
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
-        let url: Rent591Url = url.try_into()?;
-
-        match url {
-            Rent591Url::List(list_url) => Ok(list_url),
-            Rent591Url::Item(item_url) => Err(UrlError::ExpectList(item_url.into())),
-        }
-    }
-}
-
-url_wrapper! {
-    /// Wrapper for rental item URLs
-    ItemUrl
-}
-
-impl TryFrom<Url> for ItemUrl {
-    type Error = UrlError;
-
-    fn try_from(url: Url) -> Result<Self, Self::Error> {
-        let url: Rent591Url = url.try_into()?;
-        match url {
-            Rent591Url::Item(item_url) => Ok(item_url),
-            Rent591Url::List(list_url) => Err(UrlError::ExpectItem(list_url.into())),
-        }
     }
 }
 

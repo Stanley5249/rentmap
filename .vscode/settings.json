@@ -1,5 +1,6 @@
 {
     "terminal.integrated.env.windows": {
-        "RUST_LOG": "info,rentmap=debug"
-    }
+        "RUST_LOG": "info,rentmap=debug",
+        "DATABASE_URL": "sqlite://.rentmap/rentmap.sqlite"
+    },
 }
