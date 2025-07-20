@@ -5,19 +5,32 @@ pub trait TraceReport {
     fn trace_report(self) -> Self;
 }
 
-impl TraceReport for Report {
+impl TraceReport for &Report {
+    #[track_caller]
+    #[inline]
     fn trace_report(self) -> Self {
-        error!(report = %self);
+        let location = std::panic::Location::caller();
+        let at = format!(
+            "{}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+        error!(report = %self, %at);
         eprintln!("{self:?}");
         self
     }
 }
 
 impl<T> TraceReport for Result<T, Report> {
+    #[track_caller]
+    #[inline]
     fn trace_report(self) -> Self {
-        self.inspect_err(|report| {
-            error!(%report);
-            eprintln!("{report:?}");
-        })
+        {
+            if let Err(e) = &self {
+                e.trace_report();
+            }
+            self
+        }
     }
 }
