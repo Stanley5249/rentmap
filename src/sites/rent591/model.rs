@@ -1,8 +1,9 @@
+use std::ops::Deref;
+
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use sqlx::types::Json;
-use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, FromRow)]
