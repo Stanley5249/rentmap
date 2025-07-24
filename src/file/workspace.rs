@@ -73,9 +73,8 @@ impl Workspace {
         let mut tx = self.pool.begin().await?;
 
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO rent_list (created_at, url, page_count, item_count) VALUES (?, ?, ?, ?) RETURNING id"
+            "INSERT INTO rent_list (url, page_count, item_count) VALUES (?, ?, ?) RETURNING id"
         )
-        .bind(list.created_at)
         .bind(&list.url)
         .bind(list.page_count)
         .bind(list.item_count)
@@ -106,7 +105,7 @@ impl Workspace {
 
     /// Get the latest list for a URL
     pub async fn select_list(&self, url: &Url) -> Result<Option<RentList>, FileError> {
-        let rent_list = sqlx::query_as("SELECT id, created_at, url, page_count, item_count FROM rent_list WHERE url = ? ORDER BY created_at DESC LIMIT 1")
+        let rent_list = sqlx::query_as("SELECT url, page_count, item_count FROM rent_list WHERE url = ? ORDER BY created_at DESC LIMIT 1")
             .bind(Json(url))
             .fetch_optional(&self.pool)
             .await?;
@@ -140,9 +139,8 @@ impl Workspace {
 
         for item in &items {
             sqlx::query(
-"INSERT INTO rent_item (created_at, url, title, labels, patterns, content, phone, album, area, floor, price, address) 
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-                .bind(item.created_at)
+"INSERT OR REPLACE INTO rent_item (url, title, labels, patterns, content, phone, album, area, floor, price, address) 
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 .bind(&item.url)
                 .bind(&item.title)
                 .bind(&item.labels)
@@ -167,7 +165,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
     /// Get the latest item for a URL
     pub async fn select_item(&self, url: &Url) -> Result<Option<RentItem>, FileError> {
-        let item = sqlx::query_as("SELECT id, created_at, url, title, labels, patterns, content, phone, album, area, floor, price, address FROM rent_item WHERE url = ? ORDER BY created_at DESC LIMIT 1")
+        let item = sqlx::query_as("SELECT url, title, labels, patterns, content, phone, album, area, floor, price, address FROM rent_item WHERE url = ?")
             .bind(Json(url))
             .fetch_optional(&self.pool)
             .await?;
@@ -215,19 +213,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             "
 WITH LatestList AS (
     SELECT id FROM rent_list WHERE url = ? ORDER BY created_at DESC LIMIT 1
-),
-RankedItems AS (
-    SELECT
-        ri.*, ROW_NUMBER() OVER (PARTITION BY ri.url ORDER BY ri.created_at DESC) as rn
-    FROM rent_item ri
-    JOIN rent_item_summary ris ON ri.url = ris.url
-    JOIN LatestList ll ON ris.list_id = ll.id
 )
 SELECT
-    id, created_at, url, title, labels, patterns, content,
-    phone, album, area, floor, price, address
-FROM RankedItems 
-WHERE rn = 1",
+    ri.url, ri.title, ri.labels, ri.patterns, ri.content,
+    ri.phone, ri.album, ri.area, ri.floor, ri.price, ri.address
+FROM rent_item ri
+JOIN rent_item_summary ris ON ri.url = ris.url
+JOIN LatestList ll ON ris.list_id = ll.id",
         )
         .bind(Json(url))
         .fetch_all(&self.pool)
@@ -242,7 +234,7 @@ WHERE rn = 1",
 
     /// Get cached page HTML by URL
     pub async fn get_cached_page(&self, url: &Url) -> Result<Option<Page>, FileError> {
-        let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ?")
+        let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ? ORDER BY created_at DESC LIMIT 1")
             .bind(Json(url))
             .fetch_optional(&self.pool)
             .await?;
@@ -258,7 +250,7 @@ WHERE rn = 1",
 
     /// Cache a page's HTML content
     pub async fn cache_page(&self, page: &Page) -> Result<(), FileError> {
-        sqlx::query("INSERT OR REPLACE INTO page_cache (url, html) VALUES (?, ?)")
+        sqlx::query("INSERT INTO page_cache (url, html) VALUES (?, ?)")
             .bind(&page.url)
             .bind(&page.html)
             .execute(&self.pool)

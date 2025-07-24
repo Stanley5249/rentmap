@@ -1,6 +1,6 @@
 CREATE TABLE rent_list (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     url TEXT NOT NULL,
     page_count INTEGER,
     item_count INTEGER,
@@ -21,8 +21,8 @@ CREATE TABLE rent_item_summary (
 
 CREATE TABLE rent_item (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL,
-    url TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    url TEXT NOT NULL UNIQUE,
     title TEXT,
     labels TEXT,
     patterns TEXT,
@@ -32,14 +32,14 @@ CREATE TABLE rent_item (
     area TEXT,
     floor TEXT,
     price TEXT,
-    address TEXT,
-    UNIQUE (url, created_at)
+    address TEXT
 );
 
 CREATE TABLE page_cache (
-    url TEXT PRIMARY KEY,
-    html TEXT NOT NULL,
-    create_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    html TEXT NOT NULL
 );
 
 CREATE INDEX idx_rent_list_url_latest ON rent_list (url, created_at DESC);
@@ -48,4 +48,6 @@ CREATE INDEX idx_rent_item_summary_list ON rent_item_summary (list_id);
 
 CREATE INDEX idx_rent_item_summary_url ON rent_item_summary (url);
 
-CREATE INDEX idx_rent_item_url_latest ON rent_item (url, created_at DESC);
+CREATE INDEX idx_rent_item_url ON rent_item (url);
+
+CREATE INDEX idx_page_cache_url ON page_cache (url);

@@ -1,6 +1,5 @@
 use std::ops::Deref;
 
-use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use sqlx::types::Json;
@@ -8,7 +7,6 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize, FromRow)]
 pub struct RentList {
-    pub created_at: NaiveDateTime,
     pub url: Json<Url>,
     pub page_count: Option<u32>,
     pub item_count: Option<u32>,
@@ -17,7 +15,7 @@ pub struct RentList {
 }
 
 impl RentList {
-    /// Create a new RentList with current timestamp
+    /// Create a new RentList
     pub fn new(
         url: Url,
         page_count: Option<u32>,
@@ -25,7 +23,6 @@ impl RentList {
         pages: Vec<Option<RentListPage>>,
     ) -> Self {
         Self {
-            created_at: Utc::now().naive_utc(),
             url: Json(url),
             page_count,
             item_count,
@@ -97,7 +94,6 @@ impl RentItemSummary {
 
 #[derive(Clone, Debug, Deserialize, Serialize, FromRow)]
 pub struct RentItem {
-    pub created_at: NaiveDateTime,
     pub url: Json<Url>,
     pub title: Option<String>,
     pub labels: Json<Vec<String>>,
@@ -113,7 +109,7 @@ pub struct RentItem {
 
 impl RentItem {
     #[allow(clippy::too_many_arguments)]
-    /// Create a new RentItem with current timestamp
+    /// Create a new RentItem
     pub fn new(
         url: Url,
         title: Option<String>,
@@ -128,7 +124,6 @@ impl RentItem {
         address: Option<Url>,
     ) -> Self {
         Self {
-            created_at: Utc::now().naive_utc(),
             url: Json(url),
             title,
             labels: Json(labels),
