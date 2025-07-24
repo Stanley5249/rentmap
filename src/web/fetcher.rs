@@ -1,4 +1,4 @@
-use miette::{IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result, WrapErr};
 use scraper::Html;
 use url::Url;
 
@@ -47,7 +47,16 @@ impl Fetcher {
             }
         }
 
-        let page = self.backend.fetch_page(url).await?;
+        let future = {
+            let backend = self.backend;
+            let url = url.clone();
+            async move { backend.fetch_page(&url).await }
+        };
+
+        let page = tokio::spawn(future)
+            .await
+            .into_diagnostic()
+            .wrap_err("fetch task was cancelled or panicked")??;
 
         self.workspace
             .cache_page(&page)

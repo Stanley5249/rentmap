@@ -3249,6 +3249,7 @@ dependencies = [
  "comfy-table",
  "dirs",
  "ego-tree",
+ "futures",
  "google-cloud-auth",
  "google-cloud-gax",
  "google-cloud-vision-v1",

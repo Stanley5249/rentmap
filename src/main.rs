@@ -36,7 +36,7 @@ pub fn setup_tracing() {
         .init();
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     setup_tracing();
 

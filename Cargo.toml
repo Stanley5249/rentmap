@@ -10,6 +10,7 @@ bytes = "1.10.1"
 colored = "3.0.0"
 dirs = "6.0.0"
 ego-tree = "0.10.0"
+futures = "0.3"
 google-cloud-auth = "0.21.0"
 google-cloud-gax = "0.23.0"
 google-cloud-vision-v1 = "0.4.0"
@@ -65,7 +66,7 @@ version = "0.8.6"
 
 [dependencies.tokio]
 default-features = false
-features = ["macros", "rt", "signal"]
+features = ["macros", "rt-multi-thread", "signal"]
 version = "1.46.1"
 
 [dependencies.toml]
