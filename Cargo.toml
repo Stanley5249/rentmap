@@ -4,6 +4,7 @@ name = "rentmap"
 version = "0.1.0"
 
 [dependencies]
+axum = "0.8.4"
 base64 = "0.22.1"
 bytes = "1.10.1"
 colored = "3.0.0"
@@ -64,7 +65,7 @@ version = "0.8.6"
 
 [dependencies.tokio]
 default-features = false
-features = ["macros", "rt"]
+features = ["macros", "rt", "signal"]
 version = "1.46.1"
 
 [dependencies.toml]

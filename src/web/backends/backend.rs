@@ -2,7 +2,9 @@ use url::Url;
 
 use crate::web::{Page, WebError};
 
+#[derive(Default)]
 pub enum BackendType {
+    #[default]
     Spider,
 }
 

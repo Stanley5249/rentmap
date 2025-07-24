@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::Args;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous};
@@ -7,9 +7,8 @@ use sqlx::{QueryBuilder, SqlitePool};
 use tracing::{debug, info};
 use url::Url;
 
-use super::{FileError, make_directory, save_html};
+use super::{FileError, make_directory};
 use crate::sites::rent591::{RentItem, RentList};
-use crate::url::UrlExt;
 use crate::web::Page;
 
 #[derive(Debug, Args)]
@@ -53,32 +52,6 @@ impl Workspace {
         make_directory(&self.root)?;
         sqlx::migrate!().run(&self.pool).await?;
         Ok(())
-    }
-
-    #[allow(dead_code)]
-    fn html_file_for_read<P>(&self, file_name: P) -> PathBuf
-    where
-        P: AsRef<Path>,
-    {
-        let mut path = self.root.join("html");
-        path.push(file_name);
-        path
-    }
-
-    fn html_file_for_write<P>(&self, file_name: P) -> Result<PathBuf, FileError>
-    where
-        P: AsRef<Path>,
-    {
-        let mut path = self.root.join("html");
-        make_directory(&path)?;
-        path.push(file_name);
-        Ok(path)
-    }
-
-    pub fn save_page(&self, page: &Page) -> Result<(), FileError> {
-        let path = page.url_final.to_path_buf();
-        let path = self.html_file_for_write(path)?;
-        save_html(&page.html, path)
     }
 
     // List operations
@@ -263,5 +236,36 @@ WHERE rn = 1",
         info!(count = items.len(), "select items in list");
 
         Ok(items)
+    }
+
+    // Page cache operations
+
+    /// Get cached page HTML by URL
+    pub async fn get_cached_page(&self, url: &Url) -> Result<Option<Page>, FileError> {
+        let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ?")
+            .bind(Json(url))
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if page.is_some() {
+            debug!("cached page found");
+        } else {
+            debug!("cached page not found");
+        }
+
+        Ok(page)
+    }
+
+    /// Cache a page's HTML content
+    pub async fn cache_page(&self, page: &Page) -> Result<(), FileError> {
+        sqlx::query("INSERT OR REPLACE INTO page_cache (url, html) VALUES (?, ?)")
+            .bind(&page.url)
+            .bind(&page.html)
+            .execute(&self.pool)
+            .await?;
+
+        debug!("cache page");
+
+        Ok(())
     }
 }

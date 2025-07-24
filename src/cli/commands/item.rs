@@ -4,7 +4,7 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use super::error::Error;
-use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
+use crate::cli::fetcher::FetcherArgs;
 use crate::file::{Workspace, WorkspaceArgs};
 use crate::sites::rent591::{Rent591Url, scrape_item, scrape_items};
 use crate::url::UrlExt;
@@ -83,7 +83,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = setup_fetcher(&args.fetcher, workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone());
 
     match Rent591Url::try_from(args.url)? {
         Rent591Url::List(url) => {

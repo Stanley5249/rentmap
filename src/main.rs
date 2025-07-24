@@ -1,6 +1,7 @@
 //! Main entry point for RentMap CLI
 
 use clap::{Parser, Subcommand};
+use miette::Result;
 use rentmap::cli::commands::{fetch, geocoding, item, list, ocr};
 use rentmap::error::TraceReport;
 use tracing_subscriber::{self, EnvFilter};
@@ -36,7 +37,7 @@ pub fn setup_tracing() {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<()> {
     setup_tracing();
 
     let cli = Cli::parse();
@@ -48,6 +49,5 @@ async fn main() {
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
     }
-    .trace_report()
-    .ok();
+    .trace()
 }

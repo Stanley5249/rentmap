@@ -3,7 +3,7 @@ use miette::Result;
 use tracing::{debug, info};
 use url::Url;
 
-use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
+use crate::cli::fetcher::FetcherArgs;
 use crate::file::{Workspace, WorkspaceArgs};
 use crate::sites::rent591::scrape_list_and_pages;
 use crate::url::UrlExt;
@@ -55,7 +55,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = setup_fetcher(&args.fetcher, workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone());
 
     handle_list(args.url, args.refresh, args.limit, &workspace, &fetcher).await?;
 
