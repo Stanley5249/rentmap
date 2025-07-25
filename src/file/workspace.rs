@@ -73,7 +73,7 @@ impl Workspace {
         let mut tx = self.pool.begin().await?;
 
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO rent_list (url, page_count, item_count) VALUES (?, ?, ?) RETURNING id"
+            "INSERT INTO rent_list (url, page_count, item_count) VALUES (?, ?, ?) RETURNING id",
         )
         .bind(&list.url)
         .bind(list.page_count)
@@ -83,7 +83,7 @@ impl Workspace {
 
         for summary in list.item_summaries() {
             sqlx::query(
-                "INSERT INTO rent_item_summary (list_id, url, title, price, tags, txts, images) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT OR REPLACE INTO rent_item_summary (list_id, url, title, price, tags, txts, images) VALUES (?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(id)
             .bind(&summary.url)
@@ -234,7 +234,7 @@ JOIN LatestList ll ON ris.list_id = ll.id",
 
     /// Get cached page HTML by URL
     pub async fn get_cached_page(&self, url: &Url) -> Result<Option<Page>, FileError> {
-        let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ? ORDER BY created_at DESC LIMIT 1")
+        let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ?")
             .bind(Json(url))
             .fetch_optional(&self.pool)
             .await?;
@@ -250,7 +250,7 @@ JOIN LatestList ll ON ris.list_id = ll.id",
 
     /// Cache a page's HTML content
     pub async fn cache_page(&self, page: &Page) -> Result<(), FileError> {
-        sqlx::query("INSERT INTO page_cache (url, html) VALUES (?, ?)")
+        sqlx::query("INSERT OR REPLACE INTO page_cache (url, html) VALUES (?, ?)")
             .bind(&page.url)
             .bind(&page.html)
             .execute(&self.pool)

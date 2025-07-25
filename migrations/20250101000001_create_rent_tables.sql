@@ -8,7 +8,6 @@ CREATE TABLE rent_list (
 );
 
 CREATE TABLE rent_item_summary (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
     list_id INTEGER NOT NULL,
     url TEXT NOT NULL,
     title TEXT,
@@ -16,13 +15,13 @@ CREATE TABLE rent_item_summary (
     tags TEXT,
     txts TEXT,
     images TEXT,
+    PRIMARY KEY (list_id, url),
     FOREIGN KEY (list_id) REFERENCES rent_list (id) ON DELETE CASCADE
 );
 
 CREATE TABLE rent_item (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT PRIMARY KEY,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    url TEXT NOT NULL UNIQUE,
     title TEXT,
     labels TEXT,
     patterns TEXT,
@@ -36,8 +35,7 @@ CREATE TABLE rent_item (
 );
 
 CREATE TABLE page_cache (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT NOT NULL,
+    url TEXT PRIMARY KEY,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     html TEXT NOT NULL
 );
@@ -48,6 +46,6 @@ CREATE INDEX idx_rent_item_summary_list ON rent_item_summary (list_id);
 
 CREATE INDEX idx_rent_item_summary_url ON rent_item_summary (url);
 
-CREATE INDEX idx_rent_item_url ON rent_item (url);
+CREATE INDEX idx_rent_item_created_at ON rent_item (created_at);
 
-CREATE INDEX idx_page_cache_url ON page_cache (url);
+CREATE INDEX idx_page_cache_created_at ON page_cache (created_at);
