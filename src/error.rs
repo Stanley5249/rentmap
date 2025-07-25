@@ -1,16 +1,55 @@
-use miette::Result;
+use miette::Report;
 use tracing::error;
 
-pub trait TraceReport<T> {
-    fn trace_report(self) -> Result<T>;
+pub trait TraceReport {
+    fn trace(self) -> Self;
+    fn trace_report(self) -> Self;
 }
 
-impl<T> TraceReport<T> for Result<T> {
-    #[inline(always)]
-    fn trace_report(self) -> Result<T> {
-        self.inspect_err(|report| {
-            error!(%report);
-            eprintln!("{report:?}");
-        })
+impl TraceReport for &Report {
+    #[track_caller]
+    #[inline]
+    fn trace(self) -> Self {
+        let location = std::panic::Location::caller();
+        let at = format!(
+            "{}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+        error!(report = %self, %at);
+        self
+    }
+
+    #[track_caller]
+    #[inline]
+    fn trace_report(self) -> Self {
+        self.trace();
+        eprintln!("{self:?}");
+        self
+    }
+}
+
+impl<T> TraceReport for Result<T, Report> {
+    #[track_caller]
+    #[inline]
+    fn trace(self) -> Self {
+        {
+            if let Err(e) = &self {
+                e.trace();
+            }
+            self
+        }
+    }
+
+    #[track_caller]
+    #[inline]
+    fn trace_report(self) -> Self {
+        {
+            if let Err(e) = &self {
+                e.trace_report();
+            }
+            self
+        }
     }
 }

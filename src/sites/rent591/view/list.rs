@@ -6,7 +6,7 @@ use url::Url;
 use super::ViewError;
 use crate::define_selectors;
 use crate::scraper::ElementExt;
-use crate::sites::rent591::{ItemUrl, ListUrl, RentItemSummary, RentList, RentListPage};
+use crate::sites::rent591::{RentItemSummary, RentList, RentListPage};
 
 define_selectors! {
     ListSelectors,
@@ -32,11 +32,9 @@ impl ListView {
         Self { document }
     }
 
-    fn extract_url_from_item(&self, item: &ElementRef) -> Option<ItemUrl> {
+    fn extract_url_from_item(&self, item: &ElementRef) -> Option<Url> {
         let selector = &LIST_SELECTORS.item_info_link;
-        item.select_url(selector, "href")
-            .filter_map(|url| ItemUrl::try_from(url).ok())
-            .next()
+        item.select_url(selector, "href").next()
     }
 
     fn extract_title_from_item(&self, item: &ElementRef) -> Option<String> {
@@ -67,15 +65,17 @@ impl ListView {
         item.select_url(selector, "data-src").collect()
     }
 
-    fn extract_summary_from_item(&self, item: &ElementRef) -> RentItemSummary {
-        RentItemSummary {
-            url: self.extract_url_from_item(item),
-            title: self.extract_title_from_item(item),
-            price: self.extract_info_price_from_item(item),
-            tags: self.extract_info_tags_from_item(item),
-            txts: self.extract_info_txts_from_item(item),
-            images: self.extract_images_from_item(item),
-        }
+    fn extract_summary_from_item(&self, item: &ElementRef) -> Option<RentItemSummary> {
+        self.extract_url_from_item(item).map(|url| {
+            RentItemSummary::new(
+                url,
+                self.extract_title_from_item(item),
+                self.extract_info_price_from_item(item),
+                self.extract_info_tags_from_item(item),
+                self.extract_info_txts_from_item(item),
+                self.extract_images_from_item(item),
+            )
+        })
     }
 
     fn select_root(&self) -> Result<ElementRef<'_>, ViewError> {
@@ -101,28 +101,30 @@ impl ListView {
 
         let items: Vec<_> = root
             .select(item_selector)
-            .map(|item| self.extract_summary_from_item(&item))
+            .flat_map(|item| self.extract_summary_from_item(&item))
             .collect();
 
         if items.is_empty() {
             Err(ViewError::NoItemSummaries)
         } else {
-            Ok(RentListPage { items })
+            Ok(RentListPage::new(items))
         }
     }
 
-    pub fn extract_rent_list_page(&self) -> Result<RentListPage, ViewError> {
+    pub fn extract_list_page(&self) -> Result<RentListPage, ViewError> {
         let root = self.select_root()?;
         self.extract_page_from_root(&root)
     }
 
-    pub fn extract_rent_list(&self, url: ListUrl) -> Result<RentList, ViewError> {
+    pub fn extract_list(&self, url: Url) -> Result<RentList, ViewError> {
         let root = self.select_root()?;
-        self.extract_page_from_root(&root).map(|page| RentList {
-            url,
-            item_count: self.extract_item_count_from_root(&root),
-            page_count: self.extract_page_count_from_root(&root),
-            pages: vec![Some(page)],
+        self.extract_page_from_root(&root).map(|page| {
+            RentList::new(
+                url,
+                self.extract_page_count_from_root(&root),
+                self.extract_item_count_from_root(&root),
+                vec![Some(page)],
+            )
         })
     }
 }

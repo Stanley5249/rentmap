@@ -1,24 +1,20 @@
 use miette::Result;
 use tracing::{debug, info, instrument, warn};
+use url::Url;
 
 use crate::error::TraceReport;
-use crate::file::TimedRecord;
-use crate::sites::rent591::{ListUrl, ListView, RentList, RentListPage};
+use crate::sites::rent591::{ListUrlExt, ListView, RentList, RentListPage};
 use crate::web::Fetcher;
 
 #[instrument(skip_all, fields(%url, %page))]
-async fn scrape_rent_list_page(
-    fetcher: &Fetcher,
-    url: &ListUrl,
-    page: u32,
-) -> Result<RentListPage> {
+async fn scrape_list_page(fetcher: &Fetcher, url: &Url, page: u32) -> Result<RentListPage> {
     let url = url.with_page(page);
 
     let response = fetcher.try_fetch(&url).await?;
 
     let list_view = ListView::new(response);
 
-    let list_page = list_view.extract_rent_list_page()?;
+    let list_page = list_view.extract_list_page()?;
 
     debug!(item_count = list_page.items.len());
 
@@ -26,14 +22,16 @@ async fn scrape_rent_list_page(
 }
 
 #[instrument(skip_all, fields(%url))]
-async fn scrape_rent_list(fetcher: &Fetcher, url: &ListUrl) -> Result<RentList> {
+async fn scrape_list(fetcher: &Fetcher, url: &Url) -> Result<RentList> {
+    use crate::sites::rent591::ListUrlExt;
+
     let url = url.without_page();
 
     let response = fetcher.try_fetch(&url).await?;
 
     let list_view = ListView::new(response);
 
-    let rent_list = list_view.extract_rent_list(url)?;
+    let rent_list = list_view.extract_list(url)?;
 
     if let Some(page_count) = rent_list.page_count {
         debug!(page_count);
@@ -46,12 +44,12 @@ async fn scrape_rent_list(fetcher: &Fetcher, url: &ListUrl) -> Result<RentList> 
     Ok(rent_list)
 }
 
-pub async fn scrape_rent_list_and_pages(
+pub async fn scrape_list_and_pages(
     fetcher: &Fetcher,
-    url: &ListUrl,
+    url: &Url,
     limit: Option<u32>,
-) -> Result<TimedRecord<RentList>> {
-    let mut rent_list = scrape_rent_list(fetcher, url).await?;
+) -> Result<RentList> {
+    let mut rent_list = scrape_list(fetcher, url).await?;
 
     match rent_list.page_count {
         Some(page_count) => {
@@ -60,7 +58,7 @@ pub async fn scrape_rent_list_and_pages(
             rent_list.pages.reserve(max_pages as usize - 1);
 
             for page_number in 2..=max_pages {
-                let list_page = scrape_rent_list_page(fetcher, url, page_number)
+                let list_page = scrape_list_page(fetcher, url, page_number)
                     .await
                     .trace_report()
                     .ok();
@@ -72,13 +70,13 @@ pub async fn scrape_rent_list_and_pages(
             let err = rent_list.pages.len() - ok;
 
             if err == 0 {
-                info!(ok, "all pages scraped successfully")
+                info!(ok, "scrape all pages")
             } else {
-                warn!(ok, err, "some pages failed to scrape")
+                warn!(ok, err, "scrape pages with errors")
             }
         }
-        _ => warn!(page_count = "none", "scrape only the first page"),
+        _ => warn!(page_count = "none", "scrape first page only"),
     }
 
-    Ok(rent_list.into())
+    Ok(rent_list)
 }

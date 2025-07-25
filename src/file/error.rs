@@ -33,4 +33,18 @@ pub enum FileError {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Path(#[from] PathError),
+
+    #[error(transparent)]
+    #[diagnostic(
+        code(file::database_error),
+        help("check if SQLite database is accessible and not corrupted")
+    )]
+    Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    #[diagnostic(
+        code(file::migration_error),
+        help("check if migration files are present and valid")
+    )]
+    Migration(#[from] sqlx::migrate::MigrateError),
 }

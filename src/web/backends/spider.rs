@@ -43,14 +43,23 @@ fn build_website(url: &Url) -> Result<Box<Website>, BackendError> {
     Ok(Box::new(website))
 }
 
-pub async fn fetch_page(url: &Url) -> Result<Page, WebError> {
+/// Fetch a page using Spider backend
+///
+/// Note: This operation may require deep stack recursion for large DOM trees.
+/// Consider using `tokio::spawn()` when calling this function to prevent stack overflow:
+///
+/// ```rust
+/// let handle = tokio::spawn(spider::fetch_page(&url));
+/// let page = handle.await??;
+/// ```
+pub(super) async fn fetch_page(url: &Url) -> Result<Page, WebError> {
     let mut website = build_website(url)?;
 
     Box::pin(website.scrape()).await;
 
-    Ok(website
+    website
         .get_pages()
         .and_then(|pages| pages.first())
-        .ok_or(WebError::NoPages)?
-        .into())
+        .map(|page| page.into())
+        .ok_or(WebError::NoPages)
 }

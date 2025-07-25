@@ -1,74 +1,82 @@
-use miette::IntoDiagnostic;
+use miette::{IntoDiagnostic, Result, WrapErr};
 use scraper::Html;
 use url::Url;
 
 use super::backends::BackendType;
-use super::error::WebError;
 use crate::error::TraceReport;
 use crate::file::Workspace;
 use crate::scraper::HtmlExt;
-
-type Transform = Box<dyn Fn(&mut Html)>;
+use crate::web::Page;
 
 pub struct Fetcher {
-    pub workspace: Option<Workspace>,
-    pub transforms: Vec<Transform>,
+    pub cache: bool,
+    pub clean: bool,
+    pub workspace: Workspace,
     backend: BackendType,
 }
 
 impl Fetcher {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_workspace(mut self, workspace: Workspace) -> Self {
-        self.workspace = Some(workspace);
-        self
+    pub fn new(workspace: Workspace) -> Self {
+        Self {
+            cache: false,
+            clean: false,
+            workspace,
+            backend: BackendType::default(),
+        }
     }
 
     pub fn with_clean(mut self) -> Self {
-        self.transforms.push(Box::new(HtmlExt::hide_scripts));
+        self.clean = true;
         self
     }
 
-    pub fn with_transform<F>(mut self, transform: F) -> Self
-    where
-        F: 'static + Fn(&mut Html),
-    {
-        self.transforms.push(Box::new(transform));
+    pub fn with_cache(mut self) -> Self {
+        self.cache = true;
         self
     }
 
-    pub async fn try_fetch(&self, url: &Url) -> Result<Html, WebError> {
-        let mut page = self.backend.fetch_page(url).await?;
+    pub fn with_workspace(mut self, workspace: Workspace) -> Self {
+        self.workspace = workspace;
+        self
+    }
+
+    async fn try_fetch_page(&self, url: &Url) -> Result<Page> {
+        if self.cache {
+            if let Some(page) = self.workspace.get_cached_page(url).await? {
+                return Ok(page);
+            }
+        }
+
+        let future = {
+            let backend = self.backend;
+            let url = url.clone();
+            async move { backend.fetch_page(&url).await }
+        };
+
+        let page = tokio::spawn(future)
+            .await
+            .into_diagnostic()
+            .wrap_err("fetch task was cancelled or panicked")??;
+
+        self.workspace
+            .cache_page(&page)
+            .await
+            .into_diagnostic()
+            .trace_report()
+            .ok();
+
+        Ok(page)
+    }
+
+    pub async fn try_fetch(&self, url: &Url) -> Result<Html> {
+        let page = self.try_fetch_page(url).await?;
 
         let mut document = Html::parse_document(&page.html);
 
-        if !self.transforms.is_empty() {
-            for transform in &self.transforms {
-                transform(&mut document);
-            }
-            page.html = document.html();
-        }
-
-        if let Some(workspace) = &self.workspace {
-            workspace
-                .save_page(&page)
-                .into_diagnostic()
-                .trace_report()
-                .ok();
+        if self.clean {
+            document.hide_scripts();
         }
 
         Ok(document)
-    }
-}
-
-impl Default for Fetcher {
-    fn default() -> Self {
-        Self {
-            workspace: None,
-            transforms: Vec::new(),
-            backend: BackendType::Spider,
-        }
     }
 }

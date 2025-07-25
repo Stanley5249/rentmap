@@ -6,7 +6,7 @@ use url::Url;
 use super::ViewError;
 use crate::define_selectors;
 use crate::scraper::ElementExt;
-use crate::sites::rent591::{ItemUrl, RentItem};
+use crate::sites::rent591::RentItem;
 
 define_selectors! {
     ItemSelectors,
@@ -84,25 +84,27 @@ impl ItemView {
         root.select_url(selector, "src").next()
     }
 
-    pub fn extract_rent_item(&self, url: ItemUrl) -> Result<RentItem, ViewError> {
+    pub fn extract_item(&self, url: Url) -> Result<RentItem, ViewError> {
         let selector = &ITEM_SELECTORS.root;
 
         self.document
             .select(selector)
             .next()
             .ok_or(ViewError::NoItem)
-            .map(|root| RentItem {
-                url,
-                title: self.extract_title_from_root(&root),
-                labels: self.extract_house_labels(&root),
-                patterns: self.extract_patterns(&root),
-                content: self.extract_content(&root),
-                phone: self.extract_phone(&root),
-                album: self.extract_album(&root),
-                area: self.extract_area(&root),
-                floor: self.extract_floor(&root),
-                price: self.extract_price(&root),
-                address: self.extract_address(&root),
+            .map(|root| {
+                RentItem::new(
+                    url,
+                    self.extract_title_from_root(&root),
+                    self.extract_house_labels(&root),
+                    self.extract_patterns(&root),
+                    self.extract_content(&root),
+                    self.extract_phone(&root),
+                    self.extract_album(&root),
+                    self.extract_area(&root),
+                    self.extract_floor(&root),
+                    self.extract_price(&root),
+                    self.extract_address(&root),
+                )
             })
     }
 }

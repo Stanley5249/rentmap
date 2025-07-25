@@ -1,12 +1,11 @@
 use clap::Parser;
 use miette::Result;
-use tracing::debug;
+use tracing::{debug, info};
 use url::Url;
 
-use crate::cli::fetcher::{FetcherArgs, setup_fetcher};
-use crate::error::TraceReport;
-use crate::file::{TimedRecords, Workspace};
-use crate::sites::rent591::{ListUrl, RentList, scrape_rent_list_and_pages};
+use crate::cli::fetcher::FetcherArgs;
+use crate::file::{Workspace, WorkspaceArgs};
+use crate::sites::rent591::scrape_list_and_pages;
 use crate::url::UrlExt;
 use crate::web::Fetcher;
 
@@ -25,44 +24,26 @@ pub struct Args {
     pub limit: Option<u32>,
 
     #[clap(flatten)]
-    pub workspace: Workspace,
+    pub workspace: WorkspaceArgs,
 
     #[clap(flatten)]
     pub fetcher: FetcherArgs,
 }
 
 async fn handle_list(
-    url: ListUrl,
+    url: Url,
     refresh: bool,
     limit: Option<u32>,
     workspace: &Workspace,
     fetcher: &Fetcher,
 ) -> Result<()> {
-    let update_func = async |mut records: TimedRecords<RentList>| {
-        if !refresh
-            && records
-                .iter()
-                .any(|record| record.data.url.url() == url.url())
-        {
-            debug!(%url, "find existing record");
-            return Err(records);
-        }
+    if !refresh && workspace.list_exists(&url).await? {
+        info!("skip existing list");
+        return Ok(());
+    }
 
-        match scrape_rent_list_and_pages(fetcher, &url, limit)
-            .await
-            .trace_report()
-        {
-            Ok(record) => {
-                records.push(record);
-                Ok(records)
-            }
-            Err(_) => Err(records),
-        }
-    };
-
-    workspace
-        .update_records_async("rent591_lists.json", update_func)
-        .await?;
+    let list = scrape_list_and_pages(fetcher, &url, limit).await?;
+    workspace.insert_list(&list).await?;
 
     Ok(())
 }
@@ -72,13 +53,11 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     debug!(?args);
 
-    args.workspace.init()?;
+    let workspace = args.workspace.build().await?;
 
-    let fetcher = setup_fetcher(&args.fetcher, args.workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone());
 
-    let url = ListUrl::try_from(args.url)?;
-
-    handle_list(url, args.refresh, args.limit, &args.workspace, &fetcher).await?;
+    handle_list(args.url, args.refresh, args.limit, &workspace, &fetcher).await?;
 
     Ok(())
 }

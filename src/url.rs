@@ -117,6 +117,7 @@ impl UrlExt for Url {
             }
         }
 
+        #[allow(clippy::collapsible_if)]
         if let Some(last) = components.last_mut() {
             if last.is_empty() {
                 *last = "index".to_string();

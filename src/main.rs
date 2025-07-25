@@ -3,7 +3,7 @@
 use clap::{Parser, Subcommand};
 use miette::Result;
 use rentmap::cli::commands::{fetch, geocoding, item, list, ocr};
-use tracing::error;
+use rentmap::error::TraceReport;
 use tracing_subscriber::{self, EnvFilter};
 
 /// Rental data scraping and processing toolkit
@@ -31,14 +31,17 @@ pub fn setup_tracing() {
         .pretty()
         .with_env_filter(filter)
         .with_writer(std::io::stderr)
+        .with_file(false)
+        .with_line_number(false)
         .init();
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     setup_tracing();
 
     let cli = Cli::parse();
+
     match cli.command {
         Commands::List(args) => list::run(args).await,
         Commands::Item(args) => item::run(args).await,
@@ -46,5 +49,5 @@ async fn main() -> Result<()> {
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
     }
-    .inspect_err(|report| error!(%report))
+    .trace()
 }

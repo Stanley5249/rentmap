@@ -6,22 +6,27 @@ use crate::web::Fetcher;
 #[derive(Debug, Args)]
 #[command(next_help_heading = "Fetcher")]
 pub struct FetcherArgs {
-    /// Don't save HTML files
-    #[arg(long = "no-html", action = clap::ArgAction::SetFalse, default_value_t = true)]
-    pub html: bool,
+    /// Don't use cached pages, always fetch fresh
+    #[arg(long = "no-cache", action = clap::ArgAction::SetFalse)]
+    pub cache: bool,
 
     /// Don't comment out <script> and <link> tags
-    #[arg(long = "no-clean", action = clap::ArgAction::SetFalse, default_value_t = true)]
+    #[arg(long = "no-clean", action = clap::ArgAction::SetFalse)]
     pub clean: bool,
 }
 
-pub fn setup_fetcher(args: &FetcherArgs, workspace: Workspace) -> Fetcher {
-    let mut fetcher = Fetcher::new();
-    if args.html {
-        fetcher = fetcher.with_workspace(workspace);
+impl FetcherArgs {
+    pub fn build(self, workspace: Workspace) -> Fetcher {
+        let mut fetcher = Fetcher::new(workspace);
+
+        if self.cache {
+            fetcher = fetcher.with_cache();
+        }
+
+        if self.clean {
+            fetcher = fetcher.with_clean();
+        }
+
+        fetcher
     }
-    if args.clean {
-        fetcher = fetcher.with_clean();
-    }
-    fetcher
 }
