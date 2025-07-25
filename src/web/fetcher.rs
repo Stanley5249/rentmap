@@ -4,9 +4,9 @@ use url::Url;
 
 use super::backends::BackendType;
 use crate::error::TraceReport;
-use crate::file::Workspace;
 use crate::scraper::HtmlExt;
 use crate::web::Page;
+use crate::workspace::Workspace;
 
 pub struct Fetcher {
     pub cache: bool,

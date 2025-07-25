@@ -14,7 +14,7 @@ use url::Url;
 
 use super::error::ServerError;
 use crate::cli::fetcher::FetcherArgs;
-use crate::file::WorkspaceArgs;
+use crate::workspace::WorkspaceArgs;
 
 const PREVIEW_PORT: u16 = 3000;
 

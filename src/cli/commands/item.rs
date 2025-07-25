@@ -5,10 +5,10 @@ use url::Url;
 
 use super::error::Error;
 use crate::cli::fetcher::FetcherArgs;
-use crate::file::{Workspace, WorkspaceArgs};
 use crate::sites::rent591::{Rent591Url, scrape_item, scrape_items};
 use crate::url::UrlExt;
 use crate::web::Fetcher;
+use crate::workspace::{Workspace, WorkspaceArgs};
 
 /// Augment existing rental list with detailed item data
 #[derive(Debug, Parser)]

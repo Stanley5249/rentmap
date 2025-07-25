@@ -4,10 +4,10 @@ use tracing::{debug, info};
 use url::Url;
 
 use crate::cli::fetcher::FetcherArgs;
-use crate::file::{Workspace, WorkspaceArgs};
 use crate::sites::rent591::scrape_list_and_pages;
 use crate::url::UrlExt;
 use crate::web::Fetcher;
+use crate::workspace::{Workspace, WorkspaceArgs};
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON
 #[derive(Debug, Parser)]

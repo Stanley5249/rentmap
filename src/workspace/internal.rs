@@ -1,30 +1,15 @@
 use std::path::PathBuf;
 
-use clap::Args;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous};
 use sqlx::types::Json;
 use sqlx::{QueryBuilder, SqlitePool};
 use tracing::{debug, info};
 use url::Url;
 
-use super::{FileError, make_directory};
+use super::WorkspaceError;
+use crate::file::make_directory;
 use crate::sites::rent591::{RentItem, RentList};
 use crate::web::Page;
-
-#[derive(Debug, Args)]
-pub struct WorkspaceArgs {
-    /// The root directory of the workspace
-    #[arg(long, short, default_value = ".rentmap")]
-    pub workspace: PathBuf,
-}
-
-impl WorkspaceArgs {
-    pub async fn build(self) -> Result<Workspace, FileError> {
-        let workspace = Workspace::new(self.workspace);
-        workspace.init().await?;
-        Ok(workspace)
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Workspace {
@@ -48,7 +33,7 @@ impl Workspace {
         Self { root, pool }
     }
 
-    pub async fn init(&self) -> Result<(), FileError> {
+    pub async fn init(&self) -> Result<(), WorkspaceError> {
         make_directory(&self.root)?;
         sqlx::migrate!().run(&self.pool).await?;
         Ok(())
@@ -57,7 +42,7 @@ impl Workspace {
     // List operations
 
     /// Check if a list exists for the given URL
-    pub async fn list_exists(&self, url: &Url) -> Result<bool, FileError> {
+    pub async fn list_exists(&self, url: &Url) -> Result<bool, WorkspaceError> {
         let exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM rent_list WHERE url = ?)")
             .bind(Json(url))
             .fetch_one(&self.pool)
@@ -69,7 +54,7 @@ impl Workspace {
     }
 
     /// Insert a new rent list with item summaries
-    pub async fn insert_list(&self, list: &RentList) -> Result<(), FileError> {
+    pub async fn insert_list(&self, list: &RentList) -> Result<(), WorkspaceError> {
         let mut tx = self.pool.begin().await?;
 
         let id: i64 = sqlx::query_scalar(
@@ -104,7 +89,7 @@ impl Workspace {
     }
 
     /// Get the latest list for a URL
-    pub async fn select_list(&self, url: &Url) -> Result<Option<RentList>, FileError> {
+    pub async fn select_list(&self, url: &Url) -> Result<Option<RentList>, WorkspaceError> {
         let rent_list = sqlx::query_as("SELECT url, page_count, item_count FROM rent_list WHERE url = ? ORDER BY created_at DESC LIMIT 1")
             .bind(Json(url))
             .fetch_optional(&self.pool)
@@ -118,7 +103,7 @@ impl Workspace {
     // Item operations
 
     /// Check if an item exists for the given URL
-    pub async fn item_exists(&self, url: &Url) -> Result<bool, FileError> {
+    pub async fn item_exists(&self, url: &Url) -> Result<bool, WorkspaceError> {
         let exists = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM rent_item WHERE url = ?)")
             .bind(Json(url))
             .fetch_one(&self.pool)
@@ -130,7 +115,7 @@ impl Workspace {
     }
 
     /// Insert multiple rent items
-    pub async fn insert_items<'a, I>(&self, items: I) -> Result<(), FileError>
+    pub async fn insert_items<'a, I>(&self, items: I) -> Result<(), WorkspaceError>
     where
         I: IntoIterator<Item = &'a RentItem>,
     {
@@ -164,7 +149,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
     }
 
     /// Get the latest item for a URL
-    pub async fn select_item(&self, url: &Url) -> Result<Option<RentItem>, FileError> {
+    pub async fn select_item(&self, url: &Url) -> Result<Option<RentItem>, WorkspaceError> {
         let item = sqlx::query_as("SELECT url, title, labels, patterns, content, phone, album, area, floor, price, address FROM rent_item WHERE url = ?")
             .bind(Json(url))
             .fetch_optional(&self.pool)
@@ -183,7 +168,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         list_url: &Url,
         refresh: bool,
         limit: Option<u32>,
-    ) -> Result<Vec<Json<Url>>, FileError> {
+    ) -> Result<Vec<Json<Url>>, WorkspaceError> {
         let mut builder =
             QueryBuilder::new("WITH LatestList AS (SELECT id FROM rent_list WHERE url = ");
         builder.push_bind(Json(list_url));
@@ -208,7 +193,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
     }
 
     /// Get all latest items from a list
-    pub async fn select_items(&self, url: &Url) -> Result<Vec<RentItem>, FileError> {
+    pub async fn select_items(&self, url: &Url) -> Result<Vec<RentItem>, WorkspaceError> {
         let items = sqlx::query_as(
             "
 WITH LatestList AS (
@@ -233,7 +218,7 @@ JOIN LatestList ll ON ris.list_id = ll.id",
     // Page cache operations
 
     /// Get cached page HTML by URL
-    pub async fn get_cached_page(&self, url: &Url) -> Result<Option<Page>, FileError> {
+    pub async fn get_cached_page(&self, url: &Url) -> Result<Option<Page>, WorkspaceError> {
         let page = sqlx::query_as("SELECT url, html FROM page_cache WHERE url = ?")
             .bind(Json(url))
             .fetch_optional(&self.pool)
@@ -249,7 +234,7 @@ JOIN LatestList ll ON ris.list_id = ll.id",
     }
 
     /// Cache a page's HTML content
-    pub async fn cache_page(&self, page: &Page) -> Result<(), FileError> {
+    pub async fn cache_page(&self, page: &Page) -> Result<(), WorkspaceError> {
         sqlx::query("INSERT OR REPLACE INTO page_cache (url, html) VALUES (?, ?)")
             .bind(&page.url)
             .bind(&page.html)

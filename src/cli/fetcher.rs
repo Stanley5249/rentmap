@@ -1,7 +1,7 @@
 use clap::Args;
 
-use crate::file::Workspace;
 use crate::web::Fetcher;
+use crate::workspace::Workspace;
 
 #[derive(Debug, Args)]
 #[command(next_help_heading = "Fetcher")]
