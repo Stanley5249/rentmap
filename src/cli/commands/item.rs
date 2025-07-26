@@ -49,7 +49,7 @@ async fn handle_list(
         0 => warn!("no items found"),
         n => {
             info!(count = n, "find items");
-            let items = scrape_items(fetcher, urls).await;
+            let items = scrape_items(fetcher, urls.into_iter().map(|url| url.0)).await?;
             workspace.insert_items(&items).await?;
         }
     }
@@ -69,7 +69,7 @@ async fn handle_item(
         return Ok(());
     }
 
-    let item = scrape_item(fetcher, &url).await?;
+    let item = scrape_item(fetcher, url).await?;
 
     workspace.insert_items(&[item]).await?;
 
