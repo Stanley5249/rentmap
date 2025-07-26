@@ -130,6 +130,8 @@ impl SpiderChromeBackend {
 
         let html = page.content().await?;
 
+        page.close().await?;
+
         Ok(Page::new(final_url, html))
     }
 
