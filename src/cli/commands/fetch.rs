@@ -69,12 +69,14 @@ pub async fn run(args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = args.fetcher.build(workspace);
+    let mut fetcher = args.fetcher.build(workspace);
 
     let html = fetcher.try_fetch(&args.url).await?.html();
 
+    fetcher.shutdown().await;
+
     if args.preview {
-        start_preview_server(html, ([127, 0, 0, 1], PREVIEW_PORT)).await?;
+        start_preview_server(html, ([127, 0, 0, 1], PREVIEW_PORT)).await?
     }
 
     Ok(())

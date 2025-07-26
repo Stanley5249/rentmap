@@ -1,12 +1,52 @@
 use std::time::Duration;
 
+use miette::Diagnostic;
 use spider::configuration::{Configuration, WaitForDelay, WaitForIdleNetwork, WaitForSelector};
 use spider::features::chrome_common::RequestInterceptConfiguration;
 use spider::website::Website;
+use thiserror::Error;
 use url::Url;
 
-use super::BackendError;
-use crate::web::{Page, WebError};
+use crate::web::Page;
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum SpiderError {
+    #[error("failed to build spider website")]
+    #[diagnostic(
+        code(web::backend::spider::build),
+        help(
+            "spider library has poor error handling - check if the URL is valid and accessible, or contact the author if this persists"
+        )
+    )]
+    Build(#[source] Box<Website>),
+
+    #[error("no pages found")]
+    #[diagnostic(
+        code(web::backend::spider::no_pages),
+        help(
+            "the spider backend returned no content
+
+common causes:
+- invalid or inaccessible website URL
+- network connectivity issues or website is down
+- website requires authentication or blocks automated access
+- the website's structure has changed
+
+troubleshooting steps:
+1. verify the URL is correct and accessible in a regular browser
+2. check your internet connection
+3. try using the spider-chrome backend instead: --backend spider-chrome
+4. check if the website requires authentication"
+        )
+    )]
+    NoPages,
+}
+
+impl SpiderError {
+    pub fn build(website: Website) -> Self {
+        Self::Build(Box::new(website))
+    }
+}
 
 fn build_config() -> Configuration {
     let intercept_config = RequestInterceptConfiguration::new(true);
@@ -32,13 +72,13 @@ fn build_config() -> Configuration {
         .build()
 }
 
-fn build_website(url: &Url) -> Result<Box<Website>, BackendError> {
+fn build_website(url: &Url) -> Result<Box<Website>, SpiderError> {
     let config = build_config();
 
     let website = Website::new(url.as_str())
         .with_config(config)
         .build()
-        .map_err(BackendError::spider)?;
+        .map_err(SpiderError::build)?;
 
     Ok(Box::new(website))
 }
@@ -52,7 +92,7 @@ fn build_website(url: &Url) -> Result<Box<Website>, BackendError> {
 /// let handle = tokio::spawn(spider::fetch_page(&url));
 /// let page = handle.await??;
 /// ```
-pub(super) async fn fetch_page(url: &Url) -> Result<Page, WebError> {
+pub async fn fetch_page(url: &Url) -> Result<Page, SpiderError> {
     let mut website = build_website(url)?;
 
     Box::pin(website.scrape()).await;
@@ -61,5 +101,5 @@ pub(super) async fn fetch_page(url: &Url) -> Result<Page, WebError> {
         .get_pages()
         .and_then(|pages| pages.first())
         .map(|page| page.into())
-        .ok_or(WebError::NoPages)
+        .ok_or(SpiderError::NoPages)
 }

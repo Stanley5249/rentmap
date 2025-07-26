@@ -1,8 +1,8 @@
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::{IntoDiagnostic, Result};
 use scraper::Html;
 use url::Url;
 
-use super::backends::BackendType;
+use super::{Backend, BackendType};
 use crate::error::TraceReport;
 use crate::scraper::HtmlExt;
 use crate::web::Page;
@@ -12,7 +12,7 @@ pub struct Fetcher {
     pub cache: bool,
     pub clean: bool,
     pub workspace: Workspace,
-    backend: BackendType,
+    pub backend: Backend,
 }
 
 impl Fetcher {
@@ -21,7 +21,7 @@ impl Fetcher {
             cache: false,
             clean: false,
             workspace,
-            backend: BackendType::default(),
+            backend: Backend::from(BackendType::default()),
         }
     }
 
@@ -40,6 +40,14 @@ impl Fetcher {
         self
     }
 
+    pub fn with_backend<T>(mut self, backend: T) -> Self
+    where
+        T: Into<Backend>,
+    {
+        self.backend = backend.into();
+        self
+    }
+
     async fn try_fetch_page(&self, url: &Url) -> Result<Page> {
         if self.cache {
             if let Some(page) = self.workspace.get_cached_page(url).await? {
@@ -47,16 +55,7 @@ impl Fetcher {
             }
         }
 
-        let future = {
-            let backend = self.backend;
-            let url = url.clone();
-            async move { backend.fetch_page(&url).await }
-        };
-
-        let page = tokio::spawn(future)
-            .await
-            .into_diagnostic()
-            .wrap_err("fetch task was cancelled or panicked")??;
+        let page = self.backend.fetch_page(url).await?;
 
         self.workspace
             .cache_page(&page)
@@ -78,5 +77,11 @@ impl Fetcher {
         }
 
         Ok(document)
+    }
+
+    /// Shutdown the backend and cleanup resources
+    /// This should be called when the fetcher is no longer needed
+    pub async fn shutdown(&mut self) {
+        self.backend.shutdown().await;
     }
 }

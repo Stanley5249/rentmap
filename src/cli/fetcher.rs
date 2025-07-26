@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::web::Fetcher;
+use crate::web::{BackendType, Fetcher};
 use crate::workspace::Workspace;
 
 #[derive(Debug, Args)]
@@ -13,20 +13,18 @@ pub struct FetcherArgs {
     /// Don't comment out <script> and <link> tags
     #[arg(long = "no-clean", action = clap::ArgAction::SetFalse)]
     pub clean: bool,
+
+    /// Web scraping backend to use
+    #[arg(long = "backend", value_enum, default_value_t = Default::default())]
+    pub backend: BackendType,
 }
 
 impl FetcherArgs {
     pub fn build(self, workspace: Workspace) -> Fetcher {
         let mut fetcher = Fetcher::new(workspace);
-
-        if self.cache {
-            fetcher = fetcher.with_cache();
-        }
-
-        if self.clean {
-            fetcher = fetcher.with_clean();
-        }
-
+        fetcher.cache = self.cache;
+        fetcher.clean = self.clean;
+        fetcher = fetcher.with_backend(self.backend);
         fetcher
     }
 }

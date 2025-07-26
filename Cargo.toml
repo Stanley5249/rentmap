@@ -21,7 +21,6 @@ thiserror = "2.0.12"
 tracing = "0.1.41"
 
 # override spider sub-dependencies to ensure version compatibility
-spider_chrome = "2.37.125"
 spider_fingerprint = "2.37.119"
 
 [dependencies.chrono]
@@ -58,6 +57,10 @@ features = [
     "serde",
 ]
 version = "=2.37.129"
+
+[dependencies.spider-chrome]
+package = "spider_chrome"
+version = "2.37.125"
 
 [dependencies.sqlx]
 default-features = false

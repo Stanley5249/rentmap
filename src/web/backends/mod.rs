@@ -1,6 +1,5 @@
-mod backend;
-mod error;
 mod spider;
+mod spider_chrome;
 
-pub use backend::BackendType;
-pub use error::BackendError;
+pub use spider::{SpiderError, fetch_page as spider_fetch_page};
+pub use spider_chrome::{SpiderChromeBackend, SpiderChromeError};
