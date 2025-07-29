@@ -1,11 +1,18 @@
+use std::fmt::Debug;
+use std::time::Duration;
+
 use futures::StreamExt;
 use miette::{Diagnostic, IntoDiagnostic};
+use spider_chrome::Page as ChromiumPage;
 use spider_chrome::browser::{Browser, BrowserConfig};
+use spider_chrome::cdp::IntoEventKind;
+use spider_chrome::cdp::browser_protocol::network::EventLoadingFinished;
 use spider_chrome::error::CdpError;
 use spider_chrome::handler::viewport::Viewport;
 use thiserror::Error;
 use tokio::sync::OnceCell;
 use tokio::task::JoinHandle;
+use tracing::trace;
 use url::{ParseError, Url};
 
 use crate::error::TraceReport;
@@ -85,18 +92,24 @@ impl Session {
     }
 
     fn default_config() -> Result<BrowserConfig, SpiderChromeError> {
-        BrowserConfig::builder()
+        let mut config = BrowserConfig::builder()
             .viewport(Some(Viewport {
-                width: 1280,
-                height: 720,
-                device_scale_factor: None,
-                emulating_mobile: false,
-                is_landscape: false,
-                has_touch: false,
+                width: 1920,
+                height: 1080,
+                ..Default::default()
             }))
             .with_head()
+            .enable_request_intercept()
             .build()
-            .map_err(SpiderChromeError::Config)
+            .map_err(SpiderChromeError::Config)?;
+
+        config.ignore_ads = true;
+        config.ignore_analytics = true;
+        config.ignore_javascript = false;
+        config.ignore_stylesheets = false;
+        config.ignore_visuals = false;
+
+        Ok(config)
     }
 }
 
@@ -122,6 +135,11 @@ impl SpiderChromeBackend {
 
         let page = inner.browser.new_page(url.as_str()).await?;
 
+        let max_wait_duration = Duration::from_secs(20);
+        let network_idle_duration = Duration::from_millis(500);
+
+        wait_for_network_idle(&page, network_idle_duration, max_wait_duration).await?;
+
         let final_url: Url = page
             .url()
             .await?
@@ -145,4 +163,58 @@ impl SpiderChromeBackend {
 
         Ok(())
     }
+}
+
+#[allow(dead_code)]
+async fn wait_for_event<T>(page: &ChromiumPage, timeout_duration: Duration) -> Result<(), CdpError>
+where
+    T: Debug + Unpin + IntoEventKind,
+{
+    let mut events = page.event_listener::<T>().await?;
+
+    let future = async {
+        match events.next().await {
+            Some(event) => trace!(?event, "received event"),
+            None => trace!("event stream closed before receiving event"),
+        };
+    };
+
+    if (tokio::time::timeout(timeout_duration, future).await).is_err() {
+        trace!("timed out waiting for event");
+    }
+
+    Ok(())
+}
+
+/// Wait for network to be idle (no network events for `network_idle_duration`) or timeout after `timeout_duration`.
+async fn wait_for_network_idle(
+    page: &ChromiumPage,
+    idle_duration: Duration,
+    timeout_duration: Duration,
+) -> Result<(), CdpError> {
+    let mut events = page.event_listener::<EventLoadingFinished>().await?;
+
+    let future = async {
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(idle_duration) => {
+                    trace!(duration = ?idle_duration, "network idle");
+                    break;
+                },
+                Some(event) = events.next() => {
+                    trace!(?event, "received network event");
+                },
+                else => {
+                    trace!("event stream closed before network idle");
+                    break;
+                },
+            }
+        }
+    };
+
+    if (tokio::time::timeout(timeout_duration, future).await).is_err() {
+        trace!("timed out waiting for network idle");
+    }
+
+    Ok(())
 }
