@@ -123,7 +123,7 @@ impl ListView {
                 url,
                 self.extract_page_count_from_root(&root),
                 self.extract_item_count_from_root(&root),
-                vec![Some(page)],
+                vec![page],
             )
         })
     }

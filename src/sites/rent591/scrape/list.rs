@@ -1,5 +1,6 @@
+use futures::stream::StreamExt;
 use miette::Result;
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn};
 use url::Url;
 
 use crate::error::TraceReport;
@@ -55,24 +56,27 @@ pub async fn scrape_list_and_pages(
         Some(page_count) => {
             let max_pages = limit.map_or(page_count, |x| x.min(page_count));
 
-            rent_list.pages.reserve(max_pages as usize - 1);
-
-            for page_number in 2..=max_pages {
-                let list_page = scrape_list_page(fetcher, url, page_number)
+            let future = async |page_number| {
+                scrape_list_page(fetcher, url, page_number)
                     .await
                     .trace_report()
-                    .ok();
+                    .ok()
+            };
 
-                rent_list.pages.push(list_page);
-            }
+            let mut pages: Vec<_> = futures::stream::iter(2..=max_pages)
+                .map(future)
+                .buffer_unordered(10)
+                .filter_map(std::future::ready)
+                .collect()
+                .await;
 
-            let ok = rent_list.pages.iter().filter(|p| p.is_some()).count();
-            let err = rent_list.pages.len() - ok;
+            rent_list.pages.append(&mut pages);
 
-            if err == 0 {
-                info!(ok, "scrape all pages")
-            } else {
-                warn!(ok, err, "scrape pages with errors")
+            let ok = rent_list.pages.len() as u32;
+
+            match max_pages.saturating_sub(ok) {
+                0 => info!(ok, "scrape all pages"),
+                err => error!(ok, err, "scrape pages with errors"),
             }
         }
         _ => warn!(page_count = "none", "scrape first page only"),
