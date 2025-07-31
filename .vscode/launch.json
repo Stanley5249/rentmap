@@ -39,7 +39,8 @@
                 "https://intoli.com/blog/not-possible-to-block-chrome-headless/chrome-headless-test.html",
                 "-p",
                 "--no-cache",
-                "--backend spider-chrome"
+                "--backend",
+                "spider-chrome"
             ],
             "environment": [
                 {
@@ -48,7 +49,7 @@
                 },
                 {
                     "name": "RUST_LOG",
-                    "value": "debug"
+                    "value": "info,rentmap=debug"
                 }
             ],
             "console": "integratedTerminal"
