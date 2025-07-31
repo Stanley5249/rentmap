@@ -4,10 +4,9 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use super::error::Error;
-use crate::cli::fetcher::FetcherArgs;
 use crate::sites::rent591::{Rent591Url, scrape_item, scrape_items};
 use crate::url::UrlExt;
-use crate::web::Fetcher;
+use crate::web::{Fetcher, FetcherArgs};
 use crate::workspace::{Workspace, WorkspaceArgs};
 
 /// Augment existing rental list with detailed item data

@@ -13,7 +13,7 @@ use tracing::{debug, info};
 use url::Url;
 
 use super::error::ServerError;
-use crate::cli::fetcher::FetcherArgs;
+use crate::web::FetcherArgs;
 use crate::workspace::WorkspaceArgs;
 
 const PREVIEW_PORT: u16 = 3000;

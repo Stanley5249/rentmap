@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::web::{Backend, BackendType, Fetcher, SpiderChromeArgs, SpiderChromeBackend, WebError};
+use super::{Backend, BackendType, Fetcher, SpiderChromeArgs, SpiderChromeBackend, WebError};
 use crate::workspace::Workspace;
 
 #[derive(Debug, Args)]
