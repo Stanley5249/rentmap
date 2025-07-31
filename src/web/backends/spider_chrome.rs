@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::time::Duration;
 
+use clap::Args;
 use futures::StreamExt;
 use miette::{Diagnostic, IntoDiagnostic};
 use spider_chrome::Page as ChromiumPage;
@@ -10,13 +11,12 @@ use spider_chrome::cdp::browser_protocol::network::EventLoadingFinished;
 use spider_chrome::error::CdpError;
 use spider_chrome::handler::viewport::Viewport;
 use thiserror::Error;
-use tokio::sync::OnceCell;
 use tokio::task::JoinHandle;
 use tracing::trace;
 use url::{ParseError, Url};
 
 use crate::error::TraceReport;
-use crate::web::Page;
+use crate::web::{Backend, Page};
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum SpiderChromeError {
@@ -64,19 +64,51 @@ pub enum SpiderChromeError {
     )]
     Join(#[from] tokio::task::JoinError),
 }
-/// Browser session that manages the Chrome instance and message handler.
-struct Session {
+
+#[derive(Debug, Default, Args)]
+#[command(next_help_heading = "Spider Chrome")]
+pub struct SpiderChromeArgs {
+    /// Run browser in head mode (non-headless)
+    #[arg(long)]
+    pub head: bool,
+}
+
+impl TryFrom<SpiderChromeArgs> for BrowserConfig {
+    type Error = SpiderChromeError;
+
+    fn try_from(args: SpiderChromeArgs) -> Result<Self, Self::Error> {
+        let mut config = BrowserConfig::builder()
+            .viewport(Some(Viewport {
+                width: 1920,
+                height: 1080,
+                ..Default::default()
+            }))
+            .enable_request_intercept();
+
+        if args.head {
+            config = config.with_head();
+        }
+
+        let mut browser_config = config.build().map_err(SpiderChromeError::Config)?;
+
+        browser_config.ignore_ads = true;
+        browser_config.ignore_analytics = true;
+        browser_config.ignore_javascript = false;
+        browser_config.ignore_stylesheets = false;
+        browser_config.ignore_visuals = false;
+
+        Ok(browser_config)
+    }
+}
+
+/// Chrome-based web scraping backend using spider_chrome.
+pub struct SpiderChromeBackend {
     browser: Browser,
     join_handle: JoinHandle<()>,
 }
 
-impl Session {
-    async fn new(config: Option<BrowserConfig>) -> Result<Self, SpiderChromeError> {
-        let config = match config {
-            Some(config) => config,
-            None => Self::default_config()?,
-        };
-
+impl SpiderChromeBackend {
+    pub async fn new(config: BrowserConfig) -> Result<Self, SpiderChromeError> {
         let (browser, mut handler) = Browser::launch(config).await?;
 
         let join_handle = tokio::spawn(async move {
@@ -91,49 +123,16 @@ impl Session {
         })
     }
 
-    fn default_config() -> Result<BrowserConfig, SpiderChromeError> {
-        let mut config = BrowserConfig::builder()
-            .viewport(Some(Viewport {
-                width: 1920,
-                height: 1080,
-                ..Default::default()
-            }))
-            .with_head()
-            .enable_request_intercept()
-            .build()
-            .map_err(SpiderChromeError::Config)?;
+    pub async fn default() -> Result<Self, SpiderChromeError> {
+        let config = SpiderChromeArgs::default()
+            .try_into()
+            .expect("spider-chrome default config should always be valid");
 
-        config.ignore_ads = true;
-        config.ignore_analytics = true;
-        config.ignore_javascript = false;
-        config.ignore_stylesheets = false;
-        config.ignore_visuals = false;
-
-        Ok(config)
-    }
-}
-
-/// Chrome-based web scraping backend using spider_chrome.
-#[derive(Default)]
-pub struct SpiderChromeBackend {
-    session: OnceCell<Session>,
-}
-
-impl SpiderChromeBackend {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    async fn session(&self) -> Result<&Session, SpiderChromeError> {
-        self.session
-            .get_or_try_init(async || Session::new(None).await)
-            .await
+        Self::new(config).await
     }
 
     pub async fn fetch_page(&self, url: &Url) -> Result<Page, SpiderChromeError> {
-        let inner = self.session().await?;
-
-        let page = inner.browser.new_page(url.as_str()).await?;
+        let page = self.browser.new_page(url.as_str()).await?;
 
         let max_wait_duration = Duration::from_secs(20);
         let network_idle_duration = Duration::from_millis(500);
@@ -154,14 +153,17 @@ impl SpiderChromeBackend {
     }
 
     /// Gracefully shutdown the browser and cleanup resources.
-    pub async fn shutdown(&mut self) -> Result<(), SpiderChromeError> {
-        if let Some(mut inner) = self.session.take() {
-            inner.browser.close().await?;
-            inner.browser.wait().await?;
-            inner.join_handle.await?;
-        };
-
+    pub async fn shutdown(mut self) -> Result<(), SpiderChromeError> {
+        self.browser.close().await?;
+        self.browser.wait().await?;
+        self.join_handle.await?;
         Ok(())
+    }
+}
+
+impl From<SpiderChromeBackend> for Backend {
+    fn from(backend: SpiderChromeBackend) -> Self {
+        Self::SpiderChrome(Box::new(backend))
     }
 }
 

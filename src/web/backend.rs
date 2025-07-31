@@ -23,6 +23,10 @@ pub enum Backend {
 }
 
 impl Backend {
+    /// Create a default backend (spider-chrome)
+    pub async fn default() -> Result<Self, WebError> {
+        Ok(SpiderChromeBackend::default().await?.into())
+    }
     /// Fetch a page using this backend instance
     ///
     /// # Stack Overflow Warning
@@ -35,37 +39,22 @@ impl Backend {
     /// ```
     pub async fn fetch_page(&self, url: &Url) -> Result<Page, WebError> {
         match self {
-            Self::Spider => super::backends::spider_fetch_page(url)
-                .await
-                .map_err(WebError::Spider),
+            Self::Spider => Ok(super::backends::spider_fetch_page(url).await?),
 
-            Self::SpiderChrome(backend) => backend
-                .fetch_page(url)
-                .await
-                .map_err(WebError::SpiderChrome),
+            Self::SpiderChrome(backend) => Ok(backend.fetch_page(url).await?),
         }
     }
 
     /// Shutdown the backend and cleanup resources
-    pub async fn shutdown(&mut self) {
+    pub async fn shutdown(self) {
         match self {
-            Self::Spider => {
-                // Spider backend is stateless, no cleanup needed
-            }
+            Self::Spider => (), // Spider backend is stateless, no cleanup needed
+
             Self::SpiderChrome(backend) => {
                 if let Err(e) = backend.shutdown().await {
-                    error!("Failed to shutdown SpiderChrome backend: {}", e);
+                    error!(?e, "failed to shutdown spider-chrome backend");
                 }
             }
-        }
-    }
-}
-
-impl From<BackendType> for Backend {
-    fn from(backend_type: BackendType) -> Self {
-        match backend_type {
-            BackendType::Spider => Self::Spider,
-            BackendType::SpiderChrome => Self::SpiderChrome(Default::default()),
         }
     }
 }

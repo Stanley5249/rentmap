@@ -1,6 +1,6 @@
 use clap::Args;
 
-use crate::web::{BackendType, Fetcher};
+use crate::web::{Backend, BackendType, Fetcher, SpiderChromeArgs, SpiderChromeBackend, WebError};
 use crate::workspace::Workspace;
 
 #[derive(Debug, Args)]
@@ -17,14 +17,24 @@ pub struct FetcherArgs {
     /// Web scraping backend to use
     #[arg(long = "backend", value_enum, default_value_t = Default::default())]
     pub backend: BackendType,
+
+    #[command(flatten)]
+    pub spider_chrome: SpiderChromeArgs,
 }
 
 impl FetcherArgs {
-    pub fn build(self, workspace: Workspace) -> Fetcher {
-        let mut fetcher = Fetcher::new(workspace);
+    pub async fn build(self, workspace: Workspace) -> Result<Fetcher, WebError> {
+        let backend = match self.backend {
+            BackendType::Spider => Backend::Spider,
+            BackendType::SpiderChrome => SpiderChromeBackend::new(self.spider_chrome.try_into()?)
+                .await?
+                .into(),
+        };
+
+        let mut fetcher = Fetcher::new(workspace, backend);
         fetcher.cache = self.cache;
         fetcher.clean = self.clean;
-        fetcher = fetcher.with_backend(self.backend);
-        fetcher
+
+        Ok(fetcher)
     }
 }

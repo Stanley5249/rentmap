@@ -69,7 +69,7 @@ pub async fn run(args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let mut fetcher = args.fetcher.build(workspace);
+    let fetcher = args.fetcher.build(workspace).await?;
 
     let html = fetcher.try_fetch(&args.url).await?.html();
 

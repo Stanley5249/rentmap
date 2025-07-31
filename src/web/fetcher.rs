@@ -2,7 +2,7 @@ use miette::{IntoDiagnostic, Result};
 use scraper::Html;
 use url::Url;
 
-use super::{Backend, BackendType};
+use super::Backend;
 use crate::error::TraceReport;
 use crate::scraper::HtmlExt;
 use crate::web::Page;
@@ -16,12 +16,15 @@ pub struct Fetcher {
 }
 
 impl Fetcher {
-    pub fn new(workspace: Workspace) -> Self {
+    pub fn new<T>(workspace: Workspace, backend: T) -> Self
+    where
+        T: Into<Backend>,
+    {
         Self {
             cache: false,
             clean: false,
             workspace,
-            backend: Backend::from(BackendType::default()),
+            backend: backend.into(),
         }
     }
 
@@ -37,14 +40,6 @@ impl Fetcher {
 
     pub fn with_workspace(mut self, workspace: Workspace) -> Self {
         self.workspace = workspace;
-        self
-    }
-
-    pub fn with_backend<T>(mut self, backend: T) -> Self
-    where
-        T: Into<Backend>,
-    {
-        self.backend = backend.into();
         self
     }
 
@@ -81,7 +76,7 @@ impl Fetcher {
 
     /// Shutdown the backend and cleanup resources
     /// This should be called when the fetcher is no longer needed
-    pub async fn shutdown(&mut self) {
+    pub async fn shutdown(self) {
         self.backend.shutdown().await;
     }
 }

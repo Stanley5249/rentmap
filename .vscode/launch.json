@@ -27,6 +27,31 @@
                 }
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "type": "cppvsdbg",
+            "request": "launch",
+            "name": "run rentmap fetch chrome headless test",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/target/debug/rentmap.exe",
+            "args": [
+                "fetch",
+                "https://intoli.com/blog/not-possible-to-block-chrome-headless/chrome-headless-test.html",
+                "-p",
+                "--no-cache",
+                "--backend spider-chrome"
+            ],
+            "environment": [
+                {
+                    "name": "RUST_BACKTRACE",
+                    "value": "1"
+                },
+                {
+                    "name": "RUST_LOG",
+                    "value": "debug"
+                }
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

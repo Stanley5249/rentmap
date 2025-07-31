@@ -55,7 +55,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let mut fetcher = args.fetcher.build(workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone()).await?;
 
     handle_list(args.url, args.refresh, args.limit, &workspace, &fetcher).await?;
 

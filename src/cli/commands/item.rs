@@ -83,7 +83,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let mut fetcher = args.fetcher.build(workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone()).await?;
 
     match Rent591Url::try_from(args.url)? {
         Rent591Url::List(url) => {
