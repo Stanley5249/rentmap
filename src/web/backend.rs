@@ -17,6 +17,7 @@ pub enum BackendType {
 
 /// Backend instance that owns the actual backend implementations
 /// This allows each backend to maintain its own state (like browser instances)
+#[must_use = "backends hold resources that must be shut down with `shutdown()`"]
 pub enum Backend {
     Spider,
     SpiderChrome(Box<SpiderChromeBackend>),

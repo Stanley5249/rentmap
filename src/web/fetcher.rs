@@ -8,6 +8,7 @@ use crate::scraper::HtmlExt;
 use crate::web::Page;
 use crate::workspace::Workspace;
 
+#[must_use = "fetchers hold backend resources that must be shut down with `shutdown()`"]
 pub struct Fetcher {
     pub cache: bool,
     pub clean: bool,

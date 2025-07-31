@@ -13,6 +13,7 @@ use crate::error::TraceReport;
 use crate::web::{Backend, Page};
 
 /// Chrome-based web scraping backend using spider_chrome.
+#[must_use = "SpiderChromeBackend holds browser resources that must be shut down with `shutdown()`"]
 pub struct SpiderChromeBackend {
     browser: Browser,
     join_handle: JoinHandle<()>,
