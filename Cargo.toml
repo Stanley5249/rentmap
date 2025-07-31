@@ -5,23 +5,19 @@ version = "0.1.0"
 
 [dependencies]
 axum = "0.8.4"
-base64 = "0.22.1"
 bytes = "1.10.1"
 colored = "3.0.0"
 dirs = "6.0.0"
 ego-tree = "0.10.0"
-futures = "0.3"
-google-cloud-auth = "0.21.0"
-google-cloud-gax = "0.23.0"
-google-cloud-vision-v1 = "0.4.0"
+futures = "0.3.31"
+google-cloud-auth = "0.22.1"
+google-cloud-gax = "0.23.2"
+google-cloud-vision-v1 = "0.4.2"
 sanitise-file-name = "1.0.0"
 scraper = "0.23.1"
-serde_json = "1.0.140"
+serde_json = "1.0.141"
 thiserror = "2.0.12"
 tracing = "0.1.41"
-
-# override spider sub-dependencies to ensure version compatibility
-spider_fingerprint = "2.37.119"
 
 [dependencies.chrono]
 features = ["serde"]
@@ -29,7 +25,7 @@ version = "0.4.41"
 
 [dependencies.clap]
 features = ["derive", "env"]
-version = "4.5.41"
+version = "4.5.42"
 
 [dependencies.comfy-table]
 features = ["custom_styling"]
@@ -48,34 +44,24 @@ version = "7.6.0"
 features = ["derive"]
 version = "1.0.219"
 
-[dependencies.spider]
-features = [
-    "cache_chrome_hybrid_mem",
-    "chrome",
-    "chrome_intercept",
-    "chrome_stealth",
-    "serde",
-]
-version = "=2.37.129"
-
 [dependencies.spider-chrome]
 package = "spider_chrome"
 version = "2.37.125"
 
 [dependencies.sqlx]
 default-features = false
-features = ["chrono", "derive", "json", "migrate", "runtime-tokio", "sqlite"]
+features = ["derive", "json", "macros", "migrate", "runtime-tokio", "sqlite"]
 version = "0.8.6"
 
 [dependencies.tokio]
 default-features = false
 features = ["macros", "rt-multi-thread", "signal"]
-version = "1.46.1"
+version = "1.47.0"
 
 [dependencies.toml]
 default-features = false
 features = ["parse", "serde", "std"]
-version = "0.9.0"
+version = "0.9.4"
 
 [dependencies.tracing-subscriber]
 features = ["env-filter"]

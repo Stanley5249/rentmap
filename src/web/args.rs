@@ -1,6 +1,7 @@
 use clap::Args;
 
-use super::{Backend, BackendType, Fetcher, SpiderChromeArgs, SpiderChromeBackend, WebError};
+use super::{BackendType, Fetcher, SpiderChromeArgs, SpiderChromeBackend, WebError};
+use crate::web::Backend;
 use crate::workspace::Workspace;
 
 #[derive(Debug, Args)]
@@ -24,8 +25,7 @@ pub struct FetcherArgs {
 
 impl FetcherArgs {
     pub async fn build(self, workspace: Workspace) -> Result<Fetcher, WebError> {
-        let backend = match self.backend {
-            BackendType::Spider => Backend::Spider,
+        let backend: Backend = match self.backend {
             BackendType::SpiderChrome => SpiderChromeBackend::new(self.spider_chrome.try_into()?)
                 .await?
                 .into(),
