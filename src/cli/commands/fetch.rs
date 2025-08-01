@@ -13,7 +13,7 @@ use tracing::{debug, info};
 use url::Url;
 
 use super::error::ServerError;
-use crate::cli::fetcher::FetcherArgs;
+use crate::web::FetcherArgs;
 use crate::workspace::WorkspaceArgs;
 
 const PREVIEW_PORT: u16 = 3000;
@@ -69,9 +69,11 @@ pub async fn run(args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = args.fetcher.build(workspace);
+    let fetcher = args.fetcher.build(workspace).await?;
 
     let html = fetcher.try_fetch(&args.url).await?.html();
+
+    fetcher.shutdown().await;
 
     if args.preview {
         start_preview_server(html, ([127, 0, 0, 1], PREVIEW_PORT)).await?;

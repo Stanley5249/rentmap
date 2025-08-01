@@ -3,10 +3,9 @@ use miette::Result;
 use tracing::{debug, info};
 use url::Url;
 
-use crate::cli::fetcher::FetcherArgs;
 use crate::sites::rent591::scrape_list_and_pages;
 use crate::url::UrlExt;
-use crate::web::Fetcher;
+use crate::web::{Fetcher, FetcherArgs};
 use crate::workspace::{Workspace, WorkspaceArgs};
 
 /// Scrape rental listings from rent.591.com.tw and save as JSON
@@ -55,9 +54,11 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = args.fetcher.build(workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone()).await?;
 
     handle_list(args.url, args.refresh, args.limit, &workspace, &fetcher).await?;
+
+    fetcher.shutdown().await;
 
     Ok(())
 }

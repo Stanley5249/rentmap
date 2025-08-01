@@ -1,27 +1,31 @@
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::{IntoDiagnostic, Result};
 use scraper::Html;
 use url::Url;
 
-use super::backends::BackendType;
+use super::Backend;
 use crate::error::TraceReport;
 use crate::scraper::HtmlExt;
 use crate::web::Page;
 use crate::workspace::Workspace;
 
+#[must_use = "fetchers hold backend resources that must be shut down with `shutdown()`"]
 pub struct Fetcher {
     pub cache: bool,
     pub clean: bool,
     pub workspace: Workspace,
-    backend: BackendType,
+    pub backend: Backend,
 }
 
 impl Fetcher {
-    pub fn new(workspace: Workspace) -> Self {
+    pub fn new<T>(workspace: Workspace, backend: T) -> Self
+    where
+        T: Into<Backend>,
+    {
         Self {
             cache: false,
             clean: false,
             workspace,
-            backend: BackendType::default(),
+            backend: backend.into(),
         }
     }
 
@@ -47,16 +51,7 @@ impl Fetcher {
             }
         }
 
-        let future = {
-            let backend = self.backend;
-            let url = url.clone();
-            async move { backend.fetch_page(&url).await }
-        };
-
-        let page = tokio::spawn(future)
-            .await
-            .into_diagnostic()
-            .wrap_err("fetch task was cancelled or panicked")??;
+        let page = self.backend.fetch_page(url).await?;
 
         self.workspace
             .cache_page(&page)
@@ -78,5 +73,11 @@ impl Fetcher {
         }
 
         Ok(document)
+    }
+
+    /// Shutdown the backend and cleanup resources
+    /// This should be called when the fetcher is no longer needed
+    pub async fn shutdown(self) {
+        self.backend.shutdown().await;
     }
 }

@@ -11,7 +11,7 @@ pub struct RentList {
     pub page_count: Option<u32>,
     pub item_count: Option<u32>,
     #[sqlx(skip)]
-    pub pages: Vec<Option<RentListPage>>,
+    pub pages: Vec<RentListPage>,
 }
 
 impl RentList {
@@ -20,7 +20,7 @@ impl RentList {
         url: Url,
         page_count: Option<u32>,
         item_count: Option<u32>,
-        pages: Vec<Option<RentListPage>>,
+        pages: Vec<RentListPage>,
     ) -> Self {
         Self {
             url: Json(url),
@@ -32,10 +32,7 @@ impl RentList {
 
     /// Returns an iterator over all pages in the list
     pub fn item_summaries(&self) -> impl Iterator<Item = &RentItemSummary> {
-        self.pages
-            .iter()
-            .filter_map(|list| list.as_ref())
-            .flat_map(|list| list.items.iter())
+        self.pages.iter().flat_map(|list| list.items.iter())
     }
 
     /// Returns an iterator over all item URLs in all pages

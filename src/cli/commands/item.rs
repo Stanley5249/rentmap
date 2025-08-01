@@ -4,10 +4,9 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use super::error::Error;
-use crate::cli::fetcher::FetcherArgs;
 use crate::sites::rent591::{Rent591Url, scrape_item, scrape_items};
 use crate::url::UrlExt;
-use crate::web::Fetcher;
+use crate::web::{Fetcher, FetcherArgs};
 use crate::workspace::{Workspace, WorkspaceArgs};
 
 /// Augment existing rental list with detailed item data
@@ -49,7 +48,7 @@ async fn handle_list(
         0 => warn!("no items found"),
         n => {
             info!(count = n, "find items");
-            let items = scrape_items(fetcher, urls).await;
+            let items = scrape_items(fetcher, urls.into_iter().map(|url| url.0)).await?;
             workspace.insert_items(&items).await?;
         }
     }
@@ -69,7 +68,7 @@ async fn handle_item(
         return Ok(());
     }
 
-    let item = scrape_item(fetcher, &url).await?;
+    let item = scrape_item(fetcher, url).await?;
 
     workspace.insert_items(&[item]).await?;
 
@@ -83,7 +82,7 @@ pub async fn run(mut args: Args) -> Result<()> {
 
     let workspace = args.workspace.build().await?;
 
-    let fetcher = args.fetcher.build(workspace.clone());
+    let fetcher = args.fetcher.build(workspace.clone()).await?;
 
     match Rent591Url::try_from(args.url)? {
         Rent591Url::List(url) => {
@@ -93,6 +92,8 @@ pub async fn run(mut args: Args) -> Result<()> {
             handle_item(url, args.refresh, &workspace, &fetcher).await?;
         }
     }
+
+    fetcher.shutdown().await;
 
     Ok(())
 }
