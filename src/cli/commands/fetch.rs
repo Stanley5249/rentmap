@@ -76,7 +76,7 @@ pub async fn run(args: Args) -> Result<()> {
     fetcher.shutdown().await;
 
     if args.preview {
-        start_preview_server(html, ([127, 0, 0, 1], PREVIEW_PORT)).await?
+        start_preview_server(html, ([127, 0, 0, 1], PREVIEW_PORT)).await?;
     }
 
     Ok(())
