@@ -1,108 +1,8 @@
-use std::str::FromStr;
-use std::sync::LazyLock;
-
 use ego_tree::NodeRef;
-use scraper::node::{Comment, Element};
-use scraper::{ElementRef, Html, Node, Selector};
-use url::Url;
+use scraper::node::Element;
+use scraper::{ElementRef, Node};
 
-#[macro_export]
-macro_rules! define_selectors {
-    ($struct_name:ident, $($field:ident: $selector:literal),* $(,)?) => {
-        struct $struct_name {
-            $(pub $field: ::scraper::Selector,)*
-        }
-        impl $struct_name {
-            pub fn new() -> Self {
-                Self {
-                    $($field: ::scraper::Selector::parse($selector).unwrap(),)*
-                }
-            }
-        }
-    };
-}
-
-define_selectors! {
-    DomSelectors,
-    script: "link[as=\"script\"], script"
-}
-
-static SELECTORS: LazyLock<DomSelectors> = LazyLock::new(DomSelectors::new);
-
-pub trait HtmlExt {
-    fn hide_elements(&mut self, selector: &Selector);
-
-    fn hide_scripts(&mut self) {
-        self.hide_elements(&SELECTORS.script);
-    }
-}
-
-impl HtmlExt for Html {
-    fn hide_elements(&mut self, selector: &Selector) {
-        let elements: Vec<_> = self
-            .select(selector)
-            .map(|element| (element.id(), element.html()))
-            .collect();
-
-        for (id, html) in elements {
-            if let Some(mut node) = self.tree.get_mut(id) {
-                *node.value() = Node::Comment(Comment {
-                    comment: html.into(),
-                });
-            }
-        }
-    }
-}
-
-pub trait ElementExt {
-    fn select_text_concat(&self, selector: &Selector) -> impl Iterator<Item = String>;
-
-    fn select_text_join(&self, selector: &Selector, sep: &str) -> impl Iterator<Item = String>;
-
-    fn select_url(&self, selector: &Selector, attr: &str) -> impl Iterator<Item = Url>;
-
-    fn select_from_str<T: FromStr>(&self, selector: &Selector) -> impl Iterator<Item = T>;
-
-    fn select_content(&self, selector: &Selector) -> String;
-}
-
-impl ElementExt for ElementRef<'_> {
-    fn select_text_concat(&self, selector: &Selector) -> impl Iterator<Item = String> {
-        self.select(selector)
-            .map(|e| e.text().trimmed_concat())
-            .filter(|s| !s.is_empty())
-    }
-
-    fn select_text_join(&self, selector: &Selector, sep: &str) -> impl Iterator<Item = String> {
-        self.select(selector)
-            .map(|e| e.text().trimmed_join(sep))
-            .filter(|s| !s.is_empty())
-    }
-
-    fn select_url(&self, selector: &Selector, attr: &str) -> impl Iterator<Item = Url> {
-        self.select(selector)
-            .filter_map(|e| e.attr(attr))
-            .filter_map(|s| Url::parse(s).ok())
-    }
-
-    fn select_from_str<T>(&self, selector: &Selector) -> impl Iterator<Item = T>
-    where
-        T: FromStr,
-    {
-        self.select(selector)
-            .filter_map(|e| e.text().trimmed_concat().parse::<T>().ok())
-    }
-
-    fn select_content(&self, selector: &Selector) -> String {
-        self.select(selector)
-            .map(|e| extract_text_with_layout(e))
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join("\n\n")
-    }
-}
-
-enum Layout {
+pub enum Layout {
     Block,
     Inline,
     Br,
@@ -110,7 +10,7 @@ enum Layout {
 }
 
 impl Layout {
-    fn new(tag: &str) -> Layout {
+    pub fn new(tag: &str) -> Layout {
         match tag {
             "br" => Layout::Br,
 
@@ -135,7 +35,7 @@ enum Edge<'a> {
     Exit(&'a Element),
 }
 
-fn extract_text_with_layout(element: ElementRef) -> String {
+pub fn extract_text_with_layout(element: ElementRef) -> String {
     let mut result = String::new();
     let mut tree: Vec<_> = element.children().map(Edge::Enter).rev().collect();
 
@@ -188,38 +88,10 @@ fn new_line_soft(result: &mut String) {
     }
 }
 
-pub trait TextExt<'a>: Iterator<Item = &'a str>
-where
-    Self: Sized,
-{
-    fn trimmed(self) -> impl Iterator<Item = &'a str> {
-        self.map(|s: &'a str| s.trim())
-    }
-
-    fn non_empty(self) -> impl Iterator<Item = &'a str> {
-        self.filter(|s| !s.is_empty())
-    }
-
-    fn map_to_string(self) -> impl Iterator<Item = String> {
-        self.map(|s| s.to_string())
-    }
-
-    fn trimmed_concat(self) -> String {
-        self.trimmed().collect::<String>()
-    }
-
-    fn trimmed_join(self, sep: &str) -> String {
-        self.trimmed().non_empty().collect::<Vec<_>>().join(sep)
-    }
-}
-
-impl<'a, I> TextExt<'a> for I where I: Iterator<Item = &'a str> {}
-
 #[cfg(test)]
 mod tests {
+    use super::extract_text_with_layout;
     use scraper::Html;
-
-    use super::*;
 
     #[track_caller]
     fn assert_extract_text(html: &str, expected: &str) {

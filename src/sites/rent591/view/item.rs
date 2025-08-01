@@ -5,7 +5,7 @@ use url::Url;
 
 use super::ViewError;
 use crate::define_selectors;
-use crate::scraper::ElementExt;
+use crate::html::ElementExt;
 use crate::sites::rent591::RentItem;
 
 define_selectors! {
