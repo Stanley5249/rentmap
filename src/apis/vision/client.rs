@@ -6,8 +6,6 @@ use google_cloud_vision_v1::model::{
     AnnotateImageRequest, BatchAnnotateImagesRequest, Feature, Image, ImageContext,
 };
 
-use crate::apis::vision::model::OcrString;
-
 /// Vision API client wrapper around google-cloud-vision-v1 with API key authentication
 pub struct Client {
     client: ImageAnnotator,
@@ -31,7 +29,7 @@ impl Client {
         &self,
         images: Images,
         language_hints: Option<Hints>,
-    ) -> Result<Vec<OcrString>, super::error::Error>
+    ) -> Result<Vec<String>, super::error::Error>
     where
         Images: IntoIterator<Item = B>,
         Hints: IntoIterator<Item = S>,
@@ -85,8 +83,7 @@ impl Client {
             let text = response
                 .full_text_annotation
                 .ok_or(super::error::Error::NoText)?
-                .text
-                .into();
+                .text;
 
             texts.push(text);
         }
@@ -100,7 +97,7 @@ impl Client {
         &self,
         image: B,
         language_hints: Option<Hints>,
-    ) -> Result<OcrString, super::error::Error>
+    ) -> Result<String, super::error::Error>
     where
         Hints: IntoIterator<Item = S>,
         B: Into<Bytes>,

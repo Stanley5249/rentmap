@@ -4,8 +4,6 @@ use colored::Colorize;
 use comfy_table::{Cell, ContentArrangement, Table, presets};
 use google_maps::prelude::{GeocodingResponse, LatLng};
 
-use crate::apis::vision::model::OcrString;
-
 /// Trait for types that can be pretty-printed to a String.
 pub trait ToPrettyString {
     /// Renders the object to a String.
@@ -49,21 +47,24 @@ impl ToPrettyString for GeocodingResponse {
     }
 }
 
-impl ToPrettyString for OcrString {
-    fn to_pretty_string(&self) -> String {
+pub fn pretty_print_ocr_text(text: &str) {
+    if text.is_empty() {
+        let message = "No text detected".red();
+
+        println!("{message}");
+    } else {
+        let title = "Detected Text:".bold().underline();
+
         let mut table = Table::new();
 
         table
             .load_preset(presets::NOTHING)
             .set_content_arrangement(ContentArrangement::Disabled);
 
-        for (i, line) in self.lines().enumerate() {
-            table.add_row(vec![
-                Cell::new((i + 1).to_string().bright_blue()),
-                Cell::new(line),
-            ]);
+        for (i, line) in (1..).zip(text.lines()) {
+            table.add_row([Cell::new(i.to_string().bright_blue()), Cell::new(line)]);
         }
 
-        table.to_string()
+        println!("{title}\n{table}");
     }
 }

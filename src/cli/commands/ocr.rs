@@ -1,17 +1,15 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use colored::Colorize;
 use miette::Result;
 use tracing::debug;
 
 use crate::apis::vision::client::Client;
-use crate::apis::vision::model::OcrString;
 use crate::config::google::GoogleConfig;
 use crate::config::model::{Config, load_config};
 use crate::config::ocr::OcrConfig;
 use crate::file::load_image;
-use crate::pretty::ToPrettyString;
+use crate::pretty::pretty_print_ocr_text;
 
 /// Extract text from images using Google Vision API
 #[derive(Debug, Parser)]
@@ -39,16 +37,6 @@ fn merge_args(mut args: Args, config: Config) -> Args {
     args
 }
 
-fn format_ocr_result(detected_text: &OcrString) -> String {
-    if detected_text.is_empty() {
-        "No text detected".red().to_string()
-    } else {
-        let title = "Detected Text:".bold().underline();
-        let table = detected_text.to_pretty_string();
-        format!("{title}\n{table}")
-    }
-}
-
 pub async fn run(args: Args) -> Result<()> {
     let args = match load_config() {
         Some(config) => merge_args(args, config),
@@ -62,11 +50,11 @@ pub async fn run(args: Args) -> Result<()> {
 
     let vision_client = Client::new(api_key).await?;
 
-    let detected_text = vision_client
+    let text = vision_client
         .text_detection_single(image_bytes, args.config.languages)
         .await?;
 
-    println!("\n{}", format_ocr_result(&detected_text));
+    pretty_print_ocr_text(&text);
 
     Ok(())
 }
