@@ -5,3 +5,4 @@ pub mod geocoding;
 pub mod item;
 pub mod list;
 pub mod ocr;
+pub mod server;

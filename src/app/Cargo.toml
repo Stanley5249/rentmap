@@ -1,0 +1,17 @@
+[package]
+name = "app"
+
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+leptos.workspace = true
+
+[dependencies.leptos_axum]
+optional = true
+workspace = true
+
+[features]
+default = []
+hydrate = ["leptos/hydrate"]
+ssr = ["dep:leptos_axum", "leptos/ssr"]

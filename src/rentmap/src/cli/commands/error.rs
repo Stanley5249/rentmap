@@ -37,4 +37,16 @@ pub enum ServerError {
         #[source]
         source: std::io::Error,
     },
+
+    #[error("failed to load Leptos configuration")]
+    #[diagnostic(
+        code(rentmap::serve::config_error),
+        help(
+            "ensure that Cargo.toml contains proper Leptos metadata configuration. Check the workspace.metadata.leptos section."
+        )
+    )]
+    LeptosConfig {
+        #[source]
+        source: leptos::config::errors::LeptosConfigError,
+    },
 }

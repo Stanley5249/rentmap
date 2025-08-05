@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 use miette::Result;
-use rentmap::cli::commands::{fetch, geocoding, item, list, ocr};
+use rentmap::cli::commands::{fetch, geocoding, item, list, ocr, server};
 use rentmap::error::TraceReport;
 use tracing_subscriber::{self, EnvFilter};
 
@@ -11,7 +11,7 @@ use tracing_subscriber::{self, EnvFilter};
 #[command(name = "rentmap", version)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -21,6 +21,13 @@ enum Commands {
     Fetch(fetch::Args),
     Geocoding(geocoding::Args),
     Ocr(ocr::Args),
+    Run,
+}
+
+impl Default for Commands {
+    fn default() -> Self {
+        Commands::Run
+    }
 }
 
 /// Initialize tracing for logging
@@ -42,12 +49,13 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    match cli.command {
+    match cli.command.unwrap_or_default() {
         Commands::List(args) => list::run(args).await,
         Commands::Item(args) => item::run(args).await,
         Commands::Fetch(args) => fetch::run(args).await,
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
+        Commands::Run => server::run().await,
     }
     .trace()
 }
