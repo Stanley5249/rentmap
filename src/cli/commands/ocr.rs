@@ -4,7 +4,7 @@ use clap::Parser;
 use miette::Result;
 use tracing::debug;
 
-use crate::apis::vision::client::Client;
+use crate::apis::vision::Client;
 use crate::config::google::GoogleConfig;
 use crate::config::model::{Config, load_config};
 use crate::config::ocr::OcrConfig;
@@ -22,7 +22,7 @@ pub struct Args {
     pub google: GoogleConfig,
 
     #[clap(flatten)]
-    pub config: OcrConfig,
+    pub ocr: OcrConfig,
 }
 
 fn merge_args(mut args: Args, config: Config) -> Args {
@@ -31,7 +31,7 @@ fn merge_args(mut args: Args, config: Config) -> Args {
     }
 
     if let Some(ocr) = config.ocr {
-        args.config.languages = args.config.languages.or(ocr.languages);
+        args.ocr.languages_hints = args.ocr.languages_hints.or(ocr.languages_hints);
     }
 
     args
@@ -48,11 +48,10 @@ pub async fn run(args: Args) -> Result<()> {
 
     let api_key = args.google.get_api_key()?;
 
-    let vision_client = Client::new(api_key).await?;
+    let mut client = Client::from_api_key(api_key).await?;
+    client.language_hints = args.ocr.languages_hints;
 
-    let text = vision_client
-        .text_detection_single(image_bytes, args.config.languages)
-        .await?;
+    let text = client.text_detection_single(image_bytes).await?;
 
     pretty_print_ocr_text(&text);
 

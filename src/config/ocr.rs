@@ -7,6 +7,6 @@ pub struct OcrConfig {
     /// Language hints for text detection (e.g., zh-Hant, en, ja)
     ///
     /// See: https://cloud.google.com/vision/docs/languages
-    #[arg(short, long, value_delimiter = ',', num_args = 1..)]
-    pub languages: Option<Vec<String>>,
+    #[arg(short = 'l', long = "lang", value_delimiter = ',', num_args = 1..)]
+    pub languages_hints: Option<Vec<String>>,
 }

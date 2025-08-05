@@ -6,14 +6,24 @@ use google_cloud_vision_v1::model::{
     AnnotateImageRequest, BatchAnnotateImagesRequest, Feature, Image, ImageContext,
 };
 
+use super::error::Error;
+
 /// Vision API client wrapper around google-cloud-vision-v1 with API key authentication
 pub struct Client {
-    client: ImageAnnotator,
+    pub client: ImageAnnotator,
+    pub language_hints: Option<Vec<String>>,
 }
 
 impl Client {
+    pub fn new(client: ImageAnnotator) -> Self {
+        Self {
+            client,
+            language_hints: None,
+        }
+    }
+
     /// Create a new Vision API client with the provided API key
-    pub async fn new(api_key: String) -> Result<Self, super::error::Error> {
+    pub async fn from_api_key(api_key: String) -> Result<Self, Error> {
         let credentials = api_key_credentials::Builder::new(api_key).build();
 
         let client = ImageAnnotator::builder()
@@ -21,38 +31,36 @@ impl Client {
             .build()
             .await?;
 
-        Ok(Client { client })
+        Ok(Client::new(client))
     }
+
+    /// Set language hints for OCR requests
+    pub fn with_language_hints(mut self, hints: Vec<String>) -> Self {
+        self.language_hints = Some(hints);
+        self
+    }
+
     /// Perform text detection on multiple images (batch processing)
     /// Returns extracted text for all images
-    pub async fn text_detection_batch<Images, Hints, B, S>(
-        &self,
-        images: Images,
-        language_hints: Option<Hints>,
-    ) -> Result<Vec<String>, super::error::Error>
+    pub async fn text_detection_batch<I, T>(&self, images: I) -> Result<Vec<String>, Error>
     where
-        Images: IntoIterator<Item = B>,
-        Hints: IntoIterator<Item = S>,
-        B: Into<Bytes>,
-        S: Into<String>,
+        I: IntoIterator<Item = T>,
+        T: Into<Bytes>,
     {
         let features = [Feature::new().set_type(Type::TextDetection)];
 
-        let image_contents =
-            language_hints.map(|hints| ImageContext::new().set_language_hints(hints));
+        let image_context = self
+            .language_hints
+            .as_ref()
+            .map(|hints| ImageContext::new().set_language_hints(hints));
 
-        let requests: Vec<AnnotateImageRequest> = images
+        let requests: Vec<_> = images
             .into_iter()
             .map(|content| {
-                let image = Image::new().set_content(content);
-
-                let mut request = AnnotateImageRequest::new()
-                    .set_image(image)
-                    .set_features(features.to_owned());
-
-                request.image_context = image_contents.to_owned();
-
-                request
+                AnnotateImageRequest::new()
+                    .set_image(Image::new().set_content(content))
+                    .set_features(features.clone())
+                    .set_or_clear_image_context(image_context.clone())
             })
             .collect();
 
@@ -71,43 +79,33 @@ impl Client {
         let num_responses = batch_response.responses.len();
 
         if num_requests != num_responses {
-            return Err(super::error::Error::CountMismatch {
+            return Err(Error::CountMismatch {
                 images: num_requests,
                 responses: num_responses,
             });
         }
 
-        let mut texts = Vec::new();
-
-        for response in batch_response.responses {
-            let text = response
-                .full_text_annotation
-                .ok_or(super::error::Error::NoText)?
-                .text;
-
-            texts.push(text);
-        }
+        let texts = batch_response
+            .responses
+            .into_iter()
+            .map(|response| {
+                response
+                    .full_text_annotation
+                    .map(|annotation| annotation.text)
+                    .ok_or(Error::NoText)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(texts)
     }
 
     /// Perform text detection on a single image
     /// Returns extracted text for the image
-    pub async fn text_detection_single<Hints, B, S>(
-        &self,
-        image: B,
-        language_hints: Option<Hints>,
-    ) -> Result<String, super::error::Error>
+    pub async fn text_detection_single<T>(&self, image: T) -> Result<String, Error>
     where
-        Hints: IntoIterator<Item = S>,
-        B: Into<Bytes>,
-        S: Into<String>,
+        T: Into<Bytes>,
     {
-        let result = self
-            .text_detection_batch([image], language_hints)
-            .await?
-            .pop()
-            .unwrap();
+        let result = self.text_detection_batch([image]).await?.pop().unwrap();
 
         Ok(result)
     }
