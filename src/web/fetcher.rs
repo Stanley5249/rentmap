@@ -4,7 +4,7 @@ use url::Url;
 
 use super::Backend;
 use crate::error::TraceReport;
-use crate::scraper::HtmlExt;
+use crate::html::HtmlExt;
 use crate::web::Page;
 use crate::workspace::Workspace;
 
