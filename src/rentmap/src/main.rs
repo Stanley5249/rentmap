@@ -14,15 +14,20 @@ struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(Debug, Default, Subcommand)]
+#[derive(Debug, Subcommand)]
 enum Commands {
     List(list::Args),
     Item(item::Args),
     Fetch(fetch::Args),
     Geocoding(geocoding::Args),
     Ocr(ocr::Args),
-    #[default]
-    Run,
+    Server(server::Args),
+}
+
+impl Default for Commands {
+    fn default() -> Self {
+        Commands::Server(server::Args::default())
+    }
 }
 
 /// Initialize tracing for logging
@@ -50,7 +55,7 @@ async fn main() -> Result<()> {
         Commands::Fetch(args) => fetch::run(args).await,
         Commands::Geocoding(args) => geocoding::run(args).await,
         Commands::Ocr(args) => ocr::run(args).await,
-        Commands::Run => server::run().await,
+        Commands::Server(args) => server::run(args).await,
     }
     .trace()
 }

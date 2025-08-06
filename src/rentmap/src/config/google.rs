@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::error::NoApiKey;
 
 /// Google API configuration for cloud services
-#[derive(Debug, Deserialize, Args)]
+#[derive(Debug, Default, Deserialize, Args)]
 pub struct GoogleConfig {
     /// Google API key for cloud services
     #[arg(long, env = "GOOGLE_API_KEY")]

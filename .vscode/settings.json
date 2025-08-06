@@ -1,6 +1,11 @@
 {
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "leptosfmt",
+        "--stdin",
+        "--rustfmt"
+    ],
     "terminal.integrated.env.windows": {
-        "RUST_LOG": "info,rentmap=debug",
-        "DATABASE_URL": "sqlite://.rentmap/rentmap.sqlite"
-    },
+        "DATABASE_URL": "sqlite://.rentmap/rentmap.sqlite",
+        "RUST_LOG": "info,rentmap=debug"
+    }
 }

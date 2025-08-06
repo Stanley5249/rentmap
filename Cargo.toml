@@ -10,6 +10,7 @@ version = "0.1.0"
 [workspace.dependencies]
 leptos = "0.8.6"
 leptos_axum = "0.8.5"
+tracing-subscriber = "0.3.19"
 
 [profile.release]
 lto = true
@@ -21,3 +22,5 @@ strip = true
 bin-package = "rentmap"
 lib-package = "frontend"
 name = "rentmap-web"
+site-pkg-dir = "pkg"
+site-root = "target/site"
