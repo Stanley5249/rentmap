@@ -1,3 +1,4 @@
+use leptos::config::errors::LeptosConfigError;
 use miette::Diagnostic;
 use thiserror::Error;
 
@@ -26,27 +27,21 @@ pub enum ServerError {
         addr: std::net::SocketAddr,
     },
 
-    #[error("server failed during operation")]
+    #[error("{0}")]
     #[diagnostic(
         code(rentmap::fetch::serve_error),
         help(
             "the HTTP server encountered an error while serving requests. This could be due to network issues or resource constraints."
         )
     )]
-    Serve {
-        #[source]
-        source: std::io::Error,
-    },
+    Serve(#[source] std::io::Error),
 
-    #[error("failed to load Leptos configuration")]
+    #[error(transparent)]
     #[diagnostic(
         code(rentmap::serve::config_error),
         help(
             "ensure that Cargo.toml contains proper Leptos metadata configuration. Check the workspace.metadata.leptos section."
         )
     )]
-    LeptosConfig {
-        #[source]
-        source: leptos::config::errors::LeptosConfigError,
-    },
+    LeptosConfig(#[from] LeptosConfigError),
 }

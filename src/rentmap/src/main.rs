@@ -14,20 +14,15 @@ struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Debug, Default, Subcommand)]
 enum Commands {
     List(list::Args),
     Item(item::Args),
     Fetch(fetch::Args),
     Geocoding(geocoding::Args),
     Ocr(ocr::Args),
+    #[default]
     Run,
-}
-
-impl Default for Commands {
-    fn default() -> Self {
-        Commands::Run
-    }
 }
 
 /// Initialize tracing for logging

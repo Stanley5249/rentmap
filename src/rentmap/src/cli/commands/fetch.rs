@@ -57,7 +57,7 @@ where
     axum::serve(listener, app)
         .with_graceful_shutdown(signal)
         .await
-        .map_err(|source| ServerError::Serve { source })?;
+        .map_err(ServerError::Serve)?;
 
     info!("preview server stopped");
 
