@@ -1,0 +1,7 @@
+[package]
+edition = "2024"
+name = "api"
+version = "0.1.0"
+
+[dependencies]
+dioxus = { features = ["fullstack"], workspace = true }

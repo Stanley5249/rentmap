@@ -1,0 +1,72 @@
+[package]
+edition = "2024"
+name = "rentmap"
+version = "0.1.0"
+
+[dependencies]
+axum = "0.8.4"
+bytes = "1.10.1"
+colored = "3.0.0"
+dirs = "6.0.0"
+ego-tree = "0.10.0"
+futures = "0.3.31"
+google-cloud-auth = "0.22.1"
+google-cloud-gax = "0.23.2"
+google-cloud-vision-v1 = "0.4.2"
+sanitise-file-name = "1.0.0"
+scraper = "0.23.1"
+serde_json = "1.0.141"
+thiserror = "2.0.12"
+tracing = "0.1.41"
+
+[dependencies.chrono]
+features = ["serde"]
+version = "0.4.41"
+
+[dependencies.clap]
+features = ["derive", "env"]
+version = "4.5.42"
+
+[dependencies.comfy-table]
+features = ["custom_styling"]
+version = "7.1.4"
+
+[dependencies.google_maps]
+default-features = false
+features = ["geocoding", "reqwest", "reqwest-default-tls"]
+version = "3.8.3"
+
+[dependencies.miette]
+features = ["fancy"]
+version = "7.6.0"
+
+[dependencies.serde]
+features = ["derive"]
+version = "1.0.219"
+
+[dependencies.spider-chrome]
+package = "spider_chrome"
+version = "2.37.125"
+
+[dependencies.sqlx]
+default-features = false
+features = ["derive", "json", "macros", "migrate", "runtime-tokio", "sqlite"]
+version = "0.8.6"
+
+[dependencies.tokio]
+default-features = false
+features = ["macros", "rt-multi-thread", "signal"]
+version = "1.47.0"
+
+[dependencies.toml]
+default-features = false
+features = ["parse", "serde", "std"]
+version = "0.9.4"
+
+[dependencies.tracing-subscriber]
+features = ["env-filter"]
+version = "0.3.19"
+
+[dependencies.url]
+features = ["serde"]
+version = "2.5.4"
