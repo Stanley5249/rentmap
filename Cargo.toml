@@ -1,13 +1,15 @@
 [workspace]
 default-members = ["src/rentmap"]
-members = ["src/api", "src/rentmap", "src/ui", "src/web"]
+members = ["src/rentmap", "src/rentmap-app", "src/rentmap-wasm"]
 resolver = "2"
 
 [workspace.dependencies]
-dioxus = { version = "0.6.3" }
+dioxus = "0.6.3"
+serde = "1.0.219"
 
-api = { path = "src/api" }
-ui = { path = "src/ui" }
+rentmap = { path = "src/rentmap" }
+rentmap-app = { path = "src/rentmap-app" }
+rentmap-wasm = { path = "src/rentmap-wasm" }
 
 [profile.release]
 lto = true

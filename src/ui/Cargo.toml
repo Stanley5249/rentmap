@@ -1,8 +1,0 @@
-[package]
-edition = "2024"
-name = "ui"
-version = "0.1.0"
-
-[dependencies]
-api = { workspace = true }
-dioxus = { workspace = true }

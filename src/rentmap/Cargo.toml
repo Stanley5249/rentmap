@@ -42,7 +42,7 @@ version = "7.6.0"
 
 [dependencies.serde]
 features = ["derive"]
-version = "1.0.219"
+workspace = true
 
 [dependencies.spider-chrome]
 package = "spider_chrome"

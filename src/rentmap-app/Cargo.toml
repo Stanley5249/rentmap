@@ -1,0 +1,21 @@
+[package]
+edition = "2024"
+name = "rentmap-app"
+version = "0.1.0"
+
+[dependencies]
+dioxus = { features = ["fullstack"], workspace = true }
+serde = { features = ["derive"], workspace = true }
+
+rentmap = { optional = true, workspace = true }
+rentmap-wasm = { optional = true, workspace = true }
+
+[features]
+default = ["web"]
+
+client = ["dep:rentmap-wasm"]
+server = ["dep:rentmap", "dioxus/server"]
+
+desktop = ["client", "dioxus/desktop"]
+mobile = ["client", "dioxus/mobile"]
+web = ["client", "dioxus/web"]

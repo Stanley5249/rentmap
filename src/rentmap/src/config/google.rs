@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::error::NoApiKey;
 
 /// Google API configuration for cloud services
-#[derive(Debug, Deserialize, Args)]
+#[derive(Debug, Clone, Deserialize, Args)]
 pub struct GoogleConfig {
     /// Google API key for cloud services
     #[arg(long, env = "GOOGLE_API_KEY")]
@@ -15,6 +15,10 @@ pub struct GoogleConfig {
 }
 
 impl GoogleConfig {
+    pub fn validate(&self) -> Result<(), NoApiKey> {
+        self.api_key.is_some().then(|| ()).ok_or(NoApiKey)
+    }
+
     /// Returns the API key as a string, or an error if it's missing
     pub fn get_api_key(self) -> Result<String, NoApiKey> {
         self.api_key.map(Into::into).ok_or(NoApiKey)
