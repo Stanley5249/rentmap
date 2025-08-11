@@ -45,10 +45,10 @@ impl Fetcher {
     }
 
     async fn try_fetch_page(&self, url: &Url) -> Result<Page> {
-        if self.cache {
-            if let Some(page) = self.workspace.get_cached_page(url).await? {
-                return Ok(page);
-            }
+        if self.cache
+            && let Some(page) = self.workspace.get_cached_page(url).await?
+        {
+            return Ok(page);
         }
 
         let page = self.backend.fetch_page(url).await?;

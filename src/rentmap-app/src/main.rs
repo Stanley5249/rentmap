@@ -38,6 +38,9 @@ pub async fn get_server_state() -> Result<State, ServerFnError> {
 #[component]
 pub fn App() -> Element {
     let state = use_server_future(get_server_state)?;
+
+    // A false positive warning suppression for clippy
+    #[allow(clippy::redundant_closure)]
     let state = use_server_cached(|| state());
 
     rsx! {

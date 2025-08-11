@@ -16,7 +16,7 @@ pub struct GoogleConfig {
 
 impl GoogleConfig {
     pub fn validate(&self) -> Result<(), NoApiKey> {
-        self.api_key.is_some().then(|| ()).ok_or(NoApiKey)
+        self.api_key.is_some().then_some(()).ok_or(NoApiKey)
     }
 
     /// Returns the API key as a string, or an error if it's missing
