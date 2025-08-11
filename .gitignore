@@ -1,3 +1,7 @@
 /target
 /.rentmap
 rentmap.toml
+
+/node_modules
+bun.lock
+package.json

@@ -1,7 +1,10 @@
 mod components;
 
+use components::document::DocumentMeta;
 use components::gmap::GoogleMap;
-use dioxus::document::{Link, Script};
+use components::header::Header;
+use components::icons::SpinnerIcon;
+use dioxus::document::Script;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +23,6 @@ impl State {
     }
 }
 
-static FAVICON: Asset = asset!("/assets/favicon.ico");
-
 fn main() {
     dioxus::LaunchBuilder::new()
         .with_context(server_only! { State::from_args() })
@@ -37,29 +38,49 @@ pub async fn get_server_state() -> Result<State, ServerFnError> {
 #[component]
 pub fn App() -> Element {
     let state = use_server_future(get_server_state)?;
-
     let state = use_server_cached(|| state());
 
     rsx! {
-        Link { rel: "icon", href: FAVICON }
+        // Document metadata
+        DocumentMeta {}
+        // Main application container
+        div { class: "h-screen bg-gray-50 flex flex-col",
+            // Header component
+            Header {
+                property_count: 1247,
+                geocoded_count: 892,
+                title: None,
+                subtitle: None,
+            }
 
-        h1 { "Dioxus Google Maps Integration" }
-        p { "This example demonstrates a robust, idiomatic way to embed multiple Google Maps." }
-        p {
-            small { "Currently showing maps for Tainan, Taiwan and Tokyo, Japan." }
+            // Main content - takes remaining space
+            main { class: "flex-1 max-w-7xl mx-auto px-6 py-4 w-full",
+                GoogleMap {
+                    center: (25.0330, 121.5654),
+                    zoom: 11,
+                    class: "w-full h-full",
+                }
+            }
         }
-        GoogleMap { center: (22.9971, 120.2126), zoom: 12 }
-        GoogleMap { center: (35.6762, 139.6503), zoom: 14 }
 
+        // Google Maps API Script
         match state {
             Some(Ok(state)) => rsx! {
                 Script { src: "https://maps.googleapis.com/maps/api/js?key={state.api_key}&libraries=maps&v=weekly&loading=async" }
             },
             Some(Err(e)) => rsx! {
-                p { "Error fetching state {e}" }
+                div { class: "fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg",
+                    strong { "Error: " }
+                    "Failed to load Google Maps API - {e}"
+                }
             },
             None => rsx! {
-                p { "Loading..." }
+                div { class: "fixed top-4 right-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg shadow-lg",
+                    div { class: "flex items-center space-x-2",
+                        SpinnerIcon { class: "animate-spin h-4 w-4" }
+                        span { "Loading Google Maps..." }
+                    }
+                }
             },
         }
     }
