@@ -90,8 +90,9 @@ fn new_line_soft(result: &mut String) {
 
 #[cfg(test)]
 mod tests {
-    use super::extract_text_with_layout;
     use scraper::Html;
+
+    use super::extract_text_with_layout;
 
     #[track_caller]
     fn assert_extract_text(html: &str, expected: &str) {

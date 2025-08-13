@@ -1,2 +1,2 @@
 @import "tailwindcss";
-@source "./**/*.{rs,html,css}";
+@source "src/rentmap-app/**/*.rs";

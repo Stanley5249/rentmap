@@ -6,6 +6,7 @@ version = "0.1.0"
 [dependencies]
 dioxus = { features = ["fullstack"], workspace = true }
 serde = { features = ["derive"], workspace = true }
+tracing = "0.1"
 
 rentmap = { optional = true, workspace = true }
 rentmap-wasm = { optional = true, workspace = true }

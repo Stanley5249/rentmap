@@ -5243,6 +5243,7 @@ dependencies = [
  "rentmap",
  "rentmap-wasm",
  "serde",
+ "tracing",
 ]
 
 [[package]]

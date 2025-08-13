@@ -1,7 +1,8 @@
-use scraper::node::Comment;
-use scraper::{ElementRef, Html, Node, Selector};
 use std::str::FromStr;
 use std::sync::LazyLock;
+
+use scraper::node::Comment;
+use scraper::{ElementRef, Html, Node, Selector};
 use url::Url;
 
 use crate::define_selectors;
@@ -103,8 +104,9 @@ impl ElementExt for ElementRef<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use scraper::{Html, Selector};
+
+    use super::*;
 
     #[track_caller]
     fn hide_elements_test(original: &str, expected: &str, selector: &str) {

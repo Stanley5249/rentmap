@@ -1,12 +1,13 @@
 mod components;
 
 use components::document::DocumentMeta;
-use components::gmap::GoogleMap;
 use components::header::Header;
 use components::icons::SpinnerIcon;
+use components::rentmap::RentMap;
 use dioxus::document::Script;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct State {
@@ -39,37 +40,36 @@ pub async fn get_server_state() -> Result<State, ServerFnError> {
 pub fn App() -> Element {
     let state = use_server_future(get_server_state)?;
 
-    // A false positive warning suppression for clippy
-    #[allow(clippy::redundant_closure)]
-    let state = use_server_cached(|| state());
+    let state_cached = use_server_cached(|| {
+        let result = state();
+
+        match &result {
+            Some(Ok(_)) => info!("Load Google Maps API state"),
+            Some(Err(e)) => error!(error = %e, "Fail to load Google Maps API state"),
+            None => debug!("Load Google Maps API state..."),
+        }
+
+        result
+    });
 
     rsx! {
-        // Document metadata
         DocumentMeta {}
-        // Main application container
+
         div { class: "h-screen bg-gray-50 flex flex-col",
-            // Header component
-            Header {
-                property_count: 1247,
-                geocoded_count: 892,
-                title: None,
-                subtitle: None,
+            div { class: "flex-shrink-0",
+                Header { property_count: 1247, geocoded_count: 892 }
             }
 
-            // Main content - takes remaining space
-            main { class: "flex-1 max-w-7xl mx-auto px-6 py-4 w-full",
-                GoogleMap {
-                    center: (25.0330, 121.5654),
-                    zoom: 11,
-                    class: "w-full h-full",
+            main { class: "flex-1 max-w-7xl mx-auto px-6 py-4 w-full min-h-0",
+                div { class: "w-full h-full rounded-lg overflow-hidden border border-gray-300 relative flex",
+                    RentMap { center: (25.0330, 121.5654), zoom: 11 }
                 }
             }
         }
 
-        // Google Maps API Script
-        match state {
+        match &state_cached {
             Some(Ok(state)) => rsx! {
-                Script { src: "https://maps.googleapis.com/maps/api/js?key={state.api_key}&libraries=maps&v=weekly&loading=async" }
+                Script { src: "https://maps.googleapis.com/maps/api/js?key={state.api_key}&libraries=maps,marker&v=weekly&loading=async" }
             },
             Some(Err(e)) => rsx! {
                 div { class: "fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg",
